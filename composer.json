@@ -1,0 +1,15 @@
+{
+    "name": "beautifulrescues/beautiful-rescues-wp",
+    "description": "WordPress plugin for managing rescue donations and Cloudinary image galleries",
+    "type": "wordpress-plugin",
+    "license": "MIT",
+    "require": {
+        "php": ">=7.4",
+        "cloudinary/cloudinary_php": "^2.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "BeautifulRescues\\": "includes/"
+        }
+    }
+}
