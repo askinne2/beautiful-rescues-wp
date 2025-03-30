@@ -92,9 +92,6 @@ register_activation_hook(__FILE__, 'beautiful_rescues_activate');
 function beautiful_rescues_activate() {
     // Set default options
     $default_options = array(
-        'cloudinary_cloud_name' => getenv('CLOUDINARY_CLOUD_NAME') ?: '',
-        'cloudinary_api_key' => getenv('CLOUDINARY_API_KEY') ?: '',
-        'cloudinary_api_secret' => getenv('CLOUDINARY_API_SECRET') ?: '',
         'cloudinary_folder' => 'receipts',
         'allowed_admin_domains' => 'replit.com,21adsmedia.com',
         'max_file_size' => 5

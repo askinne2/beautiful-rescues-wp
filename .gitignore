@@ -1,6 +1,7 @@
 # Dependencies
 /vendor/
 /node_modules/
+composer.lock
 
 # Environment files
 .env
@@ -10,6 +11,9 @@
 .env.production
 
 # Build files
+*.zip
+*.tar.gz
+*.rar
 /dist/
 /build/
 
