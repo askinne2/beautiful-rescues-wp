@@ -92,19 +92,37 @@ register_activation_hook(__FILE__, 'beautiful_rescues_activate');
 function beautiful_rescues_activate() {
     // Set default options
     $default_options = array(
-        'cloudinary_cloud_name' => 'dgnb4yyrc',
-        'cloudinary_api_key' => '835695449949662',
-        'cloudinary_api_secret' => 'KN1e_kOwNGV9cl43P3pt5n9rH60',
+        'cloudinary_cloud_name' => getenv('CLOUDINARY_CLOUD_NAME') ?: '',
+        'cloudinary_api_key' => getenv('CLOUDINARY_API_KEY') ?: '',
+        'cloudinary_api_secret' => getenv('CLOUDINARY_API_SECRET') ?: '',
         'cloudinary_folder' => 'receipts',
         'allowed_admin_domains' => 'replit.com,21adsmedia.com',
         'max_file_size' => 5
     );
 
-    add_option('beautiful_rescues_options', $default_options);
+    // Only update if options don't exist
+    if (!get_option('beautiful_rescues_options')) {
+        add_option('beautiful_rescues_options', $default_options);
+    }
     
     // Create necessary database tables
     // Set up default options
     flush_rewrite_rules();
+}
+
+// Add admin notice if Cloudinary credentials are missing
+add_action('admin_notices', 'beautiful_rescues_check_credentials');
+function beautiful_rescues_check_credentials() {
+    $options = get_option('beautiful_rescues_options');
+    if (empty($options['cloudinary_cloud_name']) || 
+        empty($options['cloudinary_api_key']) || 
+        empty($options['cloudinary_api_secret'])) {
+        ?>
+        <div class="notice notice-warning">
+            <p><?php _e('Beautiful Rescues: Cloudinary credentials are missing. Please configure them in the plugin settings.', 'beautiful-rescues'); ?></p>
+        </div>
+        <?php
+    }
 }
 
 // Deactivation hook
