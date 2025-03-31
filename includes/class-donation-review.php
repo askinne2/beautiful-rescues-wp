@@ -13,6 +13,7 @@ class BR_Donation_Review {
         add_action('wp_ajax_load_donations', array($this, 'ajax_load_donations'));
         add_action('wp_ajax_get_donation_details', array($this, 'ajax_get_donation_details'));
         add_action('wp_ajax_update_donation_status', array($this, 'ajax_update_status'));
+        add_action('wp_ajax_update_donation_status', array($this, 'ajax_update_donation_status'));
     }
 
     /**
@@ -357,9 +358,50 @@ class BR_Donation_Review {
     }
 
     /**
+     * AJAX handler for updating donation status from single post template
+     */
+    public function ajax_update_donation_status() {
+        check_ajax_referer('update_donation_status', 'nonce');
+
+        if (!current_user_can('edit_posts')) {
+            wp_send_json_error('Permission denied');
+            return;
+        }
+
+        $donation_id = intval($_POST['donation_id']);
+        $status = sanitize_text_field($_POST['status']);
+
+        if (!in_array($status, array('pending', 'verified', 'rejected'))) {
+            wp_send_json_error('Invalid status');
+            return;
+        }
+
+        // Update the donation status term
+        wp_set_object_terms($donation_id, $status, 'donation_status');
+
+        // Update the meta field for consistency
+        update_post_meta($donation_id, '_verification_status', $status);
+
+        // Get donor details for notification
+        $donor_name = sprintf(
+            '%s %s',
+            get_post_meta($donation_id, '_donor_first_name', true),
+            get_post_meta($donation_id, '_donor_last_name', true)
+        );
+        $donor_email = get_post_meta($donation_id, '_donor_email', true);
+
+        // Send email notification
+        $this->send_status_notification($donor_email, $donor_name, $status);
+
+        wp_send_json_success(array(
+            'message' => __('Donation status updated successfully', 'beautiful-rescues')
+        ));
+    }
+
+    /**
      * Send status notification email
      */
-    private function send_status_notification($email, $name, $status, $selected_images) {
+    private function send_status_notification($email, $name, $status, $selected_images = array()) {
         $this->debug->log('Preparing status notification email', array(
             'email' => $email,
             'name' => $name,

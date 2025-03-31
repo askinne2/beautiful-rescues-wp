@@ -36,6 +36,7 @@ class BR_Gallery_Shortcode {
             'ajaxurl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('beautiful_rescues_gallery_nonce'),
             'maxFileSize' => (int) (get_option('beautiful_rescues_options')['max_file_size'] ?? 5) * 1024 * 1024,
+            'watermarkUrl' => get_option('watermark_url', 'https://res.cloudinary.com/dgnb4yyrc/image/upload/v1743356531/br-watermark-2025_2x_baljip.webp'),
             'i18n' => array(
                 'loadMore' => __('Load More', 'beautiful-rescues'),
                 'noMoreImages' => __('No more images to load', 'beautiful-rescues'),
@@ -94,11 +95,14 @@ class BR_Gallery_Shortcode {
                     </select>
                 </div>
                 <div class="gallery-actions">
+                    <div class="selected-count-container">
+                        <span class="selected-count">0</span> <?php _e('images selected', 'beautiful-rescues'); ?>
+                    </div>
+                    <button class="clear-selection-button" style="display: none;">
+                        <?php _e('Clear Selection', 'beautiful-rescues'); ?>
+                    </button>
                     <button class="load-more-button" data-page="<?php echo esc_attr($atts['page']); ?>">
                         <?php _e('Load More', 'beautiful-rescues'); ?>
-                    </button>
-                    <button class="verify-donation-button" style="display: none;">
-                        <?php _e('Verify Donation', 'beautiful-rescues'); ?>
                     </button>
                 </div>
             </div>
@@ -148,59 +152,6 @@ class BR_Gallery_Shortcode {
                     </div>
                 </div>
             </div>
-
-            <!-- Donation Verification Modal -->
-            <div class="donation-modal" style="display: none;">
-                <div class="donation-modal-content">
-                    <button class="modal-close">&times;</button>
-                    <div class="donation-modal-header">
-                        <h2><?php _e('Verify Your Donation', 'beautiful-rescues'); ?></h2>
-                        <p><?php _e('Please review your selected images and provide your donation details.', 'beautiful-rescues'); ?></p>
-                    </div>
-                    
-                    <div class="selected-images-preview">
-                        <h3><?php _e('Selected Images', 'beautiful-rescues'); ?></h3>
-                        <div class="selected-images-grid"></div>
-                    </div>
-
-                    <form id="<?php echo esc_attr($atts['form_id']); ?>" class="donation-verification-form" enctype="multipart/form-data">
-                        <div class="form-group">
-                            <label for="firstName"><?php _e('First Name', 'beautiful-rescues'); ?> *</label>
-                            <input type="text" id="firstName" name="firstName" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="lastName"><?php _e('Last Name', 'beautiful-rescues'); ?> *</label>
-                            <input type="text" id="lastName" name="lastName" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="email"><?php _e('Email Address', 'beautiful-rescues'); ?> *</label>
-                            <input type="email" id="email" name="email" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="phone"><?php _e('Phone Number', 'beautiful-rescues'); ?> *</label>
-                            <input type="tel" id="phone" name="phone" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="donationVerification"><?php _e('Donation Verification (Image or PDF)', 'beautiful-rescues'); ?> *</label>
-                            <input type="file" id="donationVerification" name="donationVerification" accept="image/*,.pdf" required>
-                            <small class="form-help"><?php _e('Upload a screenshot or PDF of your donation receipt', 'beautiful-rescues'); ?></small>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="message"><?php _e('Message (Optional)', 'beautiful-rescues'); ?></label>
-                            <textarea id="message" name="message" rows="4"></textarea>
-                        </div>
-
-                        <input type="hidden" name="selected_images" id="selected-cloudinary-images" value="">
-                        
-                        <button type="submit" class="submit-donation"><?php _e('Submit Donation', 'beautiful-rescues'); ?></button>
-                    </form>
-                </div>
-            </div>
         </div>
         <?php
         return ob_get_clean();
@@ -217,10 +168,22 @@ class BR_Gallery_Shortcode {
         $page = intval($_POST['page'] ?? 1);
         $per_page = intval($_POST['per_page'] ?? 20);
 
+        error_log('Gallery AJAX request received: ' . print_r([
+            'category' => $category,
+            'sort' => $sort,
+            'page' => $page,
+            'per_page' => $per_page
+        ], true));
+
         $images = $this->cloudinary->get_images_from_folder($category, $per_page, $sort, $page);
 
         // Check if there are more images
         $has_more = count($images) === $per_page;
+
+        error_log('Gallery AJAX response: ' . print_r([
+            'image_count' => count($images),
+            'has_more' => $has_more
+        ], true));
 
         wp_send_json_success(array(
             'images' => $images,

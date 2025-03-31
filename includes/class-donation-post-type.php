@@ -8,6 +8,11 @@ class BR_Donation_Post_Type {
         add_action('add_meta_boxes', array($this, 'add_meta_boxes'));
         add_action('save_post', array($this, 'save_meta_boxes'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_styles'));
+        
+        // Add columns to admin list view
+        add_filter('manage_donation_posts_columns', array($this, 'add_donation_columns'));
+        add_action('manage_donation_posts_custom_column', array($this, 'display_donation_columns'), 10, 2);
+        add_filter('manage_edit-donation_sortable_columns', array($this, 'make_donation_columns_sortable'));
     }
 
     /**
@@ -53,10 +58,57 @@ class BR_Donation_Post_Type {
             'hierarchical' => true,
             'show_in_rest' => false,
             'rewrite'      => array('slug' => 'donation-status'),
+            'show_admin_column' => true, // Show in admin columns
         ));
 
         // Add default terms
         $this->add_default_status_terms();
+    }
+
+    /**
+     * Add custom columns to donation list
+     */
+    public function add_donation_columns($columns) {
+        $new_columns = array();
+        foreach($columns as $key => $value) {
+            if($key === 'title') {
+                $new_columns[$key] = $value;
+                $new_columns['donor_name'] = __('Donor Name', 'beautiful-rescues');
+                $new_columns['donor_email'] = __('Email', 'beautiful-rescues');
+                $new_columns['submission_date'] = __('Submission Date', 'beautiful-rescues');
+            } else {
+                $new_columns[$key] = $value;
+            }
+        }
+        return $new_columns;
+    }
+
+    /**
+     * Display custom column content
+     */
+    public function display_donation_columns($column, $post_id) {
+        switch($column) {
+            case 'donor_name':
+                $first_name = get_post_meta($post_id, 'donor_first_name', true);
+                $last_name = get_post_meta($post_id, 'donor_last_name', true);
+                echo esc_html($first_name . ' ' . $last_name);
+                break;
+            case 'donor_email':
+                echo esc_html(get_post_meta($post_id, 'donor_email', true));
+                break;
+            case 'submission_date':
+                echo esc_html(get_post_meta($post_id, 'submission_date', true));
+                break;
+        }
+    }
+
+    /**
+     * Make custom columns sortable
+     */
+    public function make_donation_columns_sortable($columns) {
+        $columns['donor_name'] = 'donor_name';
+        $columns['submission_date'] = 'submission_date';
+        return $columns;
     }
 
     /**
@@ -197,7 +249,9 @@ class BR_Donation_Post_Type {
                                 $image_url = $cloudinary->generate_image_url($image['id'], array(
                                     'width' => 800,
                                     'height' => 800,
-                                    'watermark' => true
+                                    'crop' => 'fill',
+                                    'quality' => 'auto',
+                                    'format' => 'auto'
                                 ));
                         ?>
                                 <div class="selected-image">

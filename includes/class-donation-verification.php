@@ -19,47 +19,79 @@ class BR_Donation_Verification {
     /**
      * Render verification form
      */
-    public function render_verification_form($atts) {
+    public function render_verification_form($atts = array()) {
+        // Parse attributes
+        $atts = wp_parse_args($atts, array(
+            'source' => 'default',
+            'show_image_upload' => true
+        ));
+
         wp_enqueue_style('beautiful-rescues-verification', BR_PLUGIN_URL . 'public/css/verification.css');
         wp_enqueue_script('beautiful-rescues-verification', BR_PLUGIN_URL . 'public/js/verification.js', array('jquery'), BR_VERSION, true);
+        
+        // Get options with default values
+        $options = get_option('beautiful_rescues_options', array());
+        $max_file_size = isset($options['max_file_size']) ? (int)$options['max_file_size'] : 5; // Default to 5MB
         
         wp_localize_script('beautiful-rescues-verification', 'beautifulRescuesVerification', array(
             'ajaxurl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('beautiful_rescues_verification_nonce'),
-            'maxFileSize' => get_option('beautiful_rescues_options')['max_file_size'] * 1024 * 1024
+            'maxFileSize' => $max_file_size * 1024 * 1024, // Convert MB to bytes
+            'source' => $atts['source']
         ));
 
         ob_start();
         ?>
-        <form id="donation-verification-form" class="beautiful-rescues-verification-form">
+        <form id="donation-verification-form" class="beautiful-rescues-verification-form" method="post" enctype="multipart/form-data">
             <div class="form-group">
-                <label for="first_name">First Name *</label>
+                <label for="first_name"><?php _e('First Name', 'beautiful-rescues'); ?> *</label>
                 <input type="text" id="first_name" name="first_name" required>
             </div>
             
             <div class="form-group">
-                <label for="last_name">Last Name *</label>
+                <label for="last_name"><?php _e('Last Name', 'beautiful-rescues'); ?> *</label>
                 <input type="text" id="last_name" name="last_name" required>
             </div>
             
             <div class="form-group">
-                <label for="email">Email *</label>
+                <label for="email"><?php _e('Email Address', 'beautiful-rescues'); ?> *</label>
                 <input type="email" id="email" name="email" required>
             </div>
             
             <div class="form-group">
-                <label for="phone">Phone</label>
-                <input type="tel" id="phone" name="phone">
+                <label for="phone"><?php _e('Phone Number', 'beautiful-rescues'); ?> *</label>
+                <input type="tel" id="phone" name="phone" required>
             </div>
             
+            <?php if ($atts['show_image_upload']) : ?>
             <div class="form-group">
-                <label for="selected_images">Select Images *</label>
+                <label for="selected_images"><?php _e('Select Images', 'beautiful-rescues'); ?> *</label>
                 <div id="image-preview" class="image-preview"></div>
                 <input type="file" id="selected_images" name="selected_images" accept="image/*,application/pdf" multiple required>
             </div>
+            <?php endif; ?>
             
             <div class="form-group">
-                <button type="submit" class="submit-button">Submit Verification</button>
+                <label for="donation_verification"><?php _e('Donation Verification (Image or PDF)', 'beautiful-rescues'); ?> *</label>
+                <input type="file" id="donation_verification" name="donation_verification" accept="image/*,.pdf" required>
+                <p class="help-text"><?php _e('Upload a screenshot or PDF of your donation receipt', 'beautiful-rescues'); ?></p>
+            </div>
+
+            <div class="form-group">
+                <label for="message"><?php _e('Message (Optional)', 'beautiful-rescues'); ?></label>
+                <textarea id="message" name="message" rows="4"></textarea>
+            </div>
+            
+            <input type="hidden" name="action" value="submit_donation_verification">
+            <input type="hidden" name="nonce" value="<?php echo wp_create_nonce('beautiful_rescues_verification_nonce'); ?>">
+            <input type="hidden" name="source" value="<?php echo esc_attr($atts['source']); ?>">
+            
+            <div class="form-group">
+                <button type="submit" class="submit-button"><?php 
+                    echo $atts['source'] === 'checkout' 
+                        ? __('Complete Checkout', 'beautiful-rescues')
+                        : __('Submit Verification', 'beautiful-rescues'); 
+                ?></button>
             </div>
             
             <div id="form-messages" class="form-messages"></div>
@@ -72,7 +104,8 @@ class BR_Donation_Verification {
      * Handle verification submission
      */
     public function handle_verification_submission() {
-        check_ajax_referer('beautiful_rescues_gallery_nonce', 'nonce');
+        // Check nonce with correct nonce name
+        check_ajax_referer('beautiful_rescues_verification_nonce', 'nonce');
 
         $response = array(
             'success' => false,
@@ -84,8 +117,8 @@ class BR_Donation_Verification {
             error_log('Donation verification submission received: ' . print_r($_POST, true));
             error_log('Files received: ' . print_r($_FILES, true));
 
-            // Validate required fields
-            $required_fields = array('firstName', 'lastName', 'email', 'phone');
+            // Validate required fields with correct field names
+            $required_fields = array('first_name', 'last_name', 'email', 'phone');
             foreach ($required_fields as $field) {
                 if (empty($_POST[$field])) {
                     throw new Exception("Missing required field: {$field}");
@@ -102,17 +135,19 @@ class BR_Donation_Verification {
                 throw new Exception('Invalid phone number format');
             }
 
-            // Handle file upload
-            if (empty($_FILES['donationVerification'])) {
+            // Handle file upload with correct field name
+            if (empty($_FILES['donation_verification'])) {
                 throw new Exception('Please upload your donation verification');
             }
 
-            $file = $_FILES['donationVerification'];
-            $max_file_size = (int) (get_option('beautiful_rescues_options')['max_file_size'] ?? 5) * 1024 * 1024; // Convert MB to bytes
+            $file = $_FILES['donation_verification'];
+            $options = get_option('beautiful_rescues_options', array());
+            $max_file_size = isset($options['max_file_size']) ? (int)$options['max_file_size'] : 5; // Default to 5MB
+            $max_file_size_bytes = $max_file_size * 1024 * 1024; // Convert MB to bytes
 
             // Validate file size
-            if ($file['size'] > $max_file_size) {
-                throw new Exception(sprintf('File size must be less than %dMB', (int) (get_option('beautiful_rescues_options')['max_file_size'] ?? 5)));
+            if ($file['size'] > $max_file_size_bytes) {
+                throw new Exception(sprintf('File size must be less than %dMB', $max_file_size));
             }
 
             // Validate file type
@@ -171,19 +206,23 @@ class BR_Donation_Verification {
                 throw new Exception('Failed to create donation record');
             }
 
-            // Store verification data
+            // Set initial donation status
+            wp_set_object_terms($donation_id, 'pending', 'donation_status');
+
+            // Store verification data with correct field names and underscore prefix
             $meta_fields = array(
-                'donor_first_name' => sanitize_text_field($_POST['firstName']),
-                'donor_last_name' => sanitize_text_field($_POST['lastName']),
-                'donor_email' => sanitize_email($_POST['email']),
-                'donor_phone' => sanitize_text_field($_POST['phone']),
-                'donor_message' => sanitize_textarea_field($_POST['message'] ?? ''),
-                'selected_images' => $selected_images,
-                'verification_file' => $unique_filename,
-                'verification_file_url' => $verification_url,
-                'verification_file_path' => $file_path,
-                'verification_status' => 'pending',
-                'submission_date' => $timestamp
+                '_donor_first_name' => sanitize_text_field($_POST['first_name']),
+                '_donor_last_name' => sanitize_text_field($_POST['last_name']),
+                '_donor_email' => sanitize_email($_POST['email']),
+                '_donor_phone' => sanitize_text_field($_POST['phone']),
+                '_donor_message' => sanitize_textarea_field($_POST['message'] ?? ''),
+                '_selected_images' => $selected_images,
+                '_verification_file' => $unique_filename,
+                '_verification_file_url' => $verification_url,
+                '_verification_file_path' => $file_path,
+                '_verification_status' => 'pending',
+                '_submission_date' => $timestamp,
+                '_form_source' => sanitize_text_field($_POST['source'] ?? 'checkout')
             );
 
             // Debug log the meta fields
@@ -259,12 +298,16 @@ class BR_Donation_Verification {
      */
     private function send_admin_notification($donation_id) {
         $admin_email = get_option('admin_email');
-        $donor_email = get_post_meta($donation_id, 'donor_email', true);
+        $donor_email = get_post_meta($donation_id, '_donor_email', true);
         $donor_name = sprintf(
             '%s %s',
-            get_post_meta($donation_id, 'donor_first_name', true),
-            get_post_meta($donation_id, 'donor_last_name', true)
+            get_post_meta($donation_id, '_donor_first_name', true),
+            get_post_meta($donation_id, '_donor_last_name', true)
         );
+
+        // Get donation status
+        $status_terms = wp_get_object_terms($donation_id, 'donation_status');
+        $status = !empty($status_terms) ? $status_terms[0]->name : 'Pending';
 
         // Admin notification
         $admin_subject = sprintf('New Donation Verification from %s', $donor_name);
@@ -274,13 +317,14 @@ class BR_Donation_Verification {
             "Email: %s\n" .
             "Phone: %s\n" .
             "Message: %s\n" .
-            "Status: Pending\n\n" .
+            "Status: %s\n\n" .
             "View verification: %s\n\n" .
             "Review verification: %s",
             $donor_name,
             $donor_email,
-            get_post_meta($donation_id, 'donor_phone', true),
-            get_post_meta($donation_id, 'donor_message', true),
+            get_post_meta($donation_id, '_donor_phone', true),
+            get_post_meta($donation_id, '_donor_message', true),
+            $status,
             admin_url('post.php?post=' . $donation_id . '&action=edit'),
             home_url('/review-donations/')
         );
@@ -292,12 +336,16 @@ class BR_Donation_Verification {
      * Send donor confirmation
      */
     private function send_donor_confirmation($donation_id) {
-        $donor_email = get_post_meta($donation_id, 'donor_email', true);
+        $donor_email = get_post_meta($donation_id, '_donor_email', true);
         $donor_name = sprintf(
             '%s %s',
-            get_post_meta($donation_id, 'donor_first_name', true),
-            get_post_meta($donation_id, 'donor_last_name', true)
+            get_post_meta($donation_id, '_donor_first_name', true),
+            get_post_meta($donation_id, '_donor_last_name', true)
         );
+
+        // Get donation status
+        $status_terms = wp_get_object_terms($donation_id, 'donation_status');
+        $status = !empty($status_terms) ? $status_terms[0]->name : 'Pending';
 
         $donor_subject = 'Thank you for your donation verification';
         $donor_message = sprintf(
@@ -307,15 +355,17 @@ class BR_Donation_Verification {
             "- Name: %s\n" .
             "- Email: %s\n" .
             "- Phone: %s\n" .
-            "- Message: %s\n\n" .
+            "- Message: %s\n" .
+            "- Status: %s\n\n" .
             "We will contact you once we've reviewed your verification.\n\n" .
             "Best regards,\n" .
             "Beautiful Rescues Team",
             $donor_name,
             $donor_name,
             $donor_email,
-            get_post_meta($donation_id, 'donor_phone', true),
-            get_post_meta($donation_id, 'donor_message', true)
+            get_post_meta($donation_id, '_donor_phone', true),
+            get_post_meta($donation_id, '_donor_message', true),
+            $status
         );
 
         wp_mail($donor_email, $donor_subject, $donor_message);

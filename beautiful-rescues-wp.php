@@ -35,6 +35,18 @@ define('BR_PLUGIN_URL', plugin_dir_url(__FILE__));
 require_once BR_PLUGIN_DIR . 'includes/class-debug.php';
 $debug = BR_Debug::get_instance();
 
+// Check template file existence
+$template_file = BR_PLUGIN_DIR . 'templates/checkout.php';
+if (file_exists($template_file)) {
+    $debug->log('Checkout template file found', array(
+        'template_path' => $template_file
+    ), 'info');
+} else {
+    $debug->log('Checkout template file not found', array(
+        'template_path' => $template_file
+    ), 'error');
+}
+
 // Load Composer autoloader
 $autoload_file = BR_PLUGIN_DIR . 'vendor/autoload.php';
 
@@ -56,56 +68,32 @@ if (file_exists($autoload_file)) {
 }
 
 // Include required files
+require_once BR_PLUGIN_DIR . 'includes/class-beautiful-rescues.php';
 require_once BR_PLUGIN_DIR . 'includes/class-settings.php';
 require_once BR_PLUGIN_DIR . 'includes/class-cloudinary-integration.php';
 require_once BR_PLUGIN_DIR . 'includes/class-donation-post-type.php';
 require_once BR_PLUGIN_DIR . 'includes/class-gallery-shortcode.php';
 require_once BR_PLUGIN_DIR . 'includes/class-donation-verification.php';
 require_once BR_PLUGIN_DIR . 'includes/class-donation-review.php';
+require_once BR_PLUGIN_DIR . 'includes/class-cart-shortcode.php';
 
 // Initialize the plugin
 function beautiful_rescues_init() {
     $debug = BR_Debug::get_instance();
+    $debug->log('Initializing Beautiful Rescues plugin from main file', array(
+        'hook' => current_filter(),
+        'backtrace' => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 5)
+    ), 'info');
     
-    // Initialize settings
-    new BR_Settings();
-    
-    // Initialize Cloudinary integration
-    new BR_Cloudinary_Integration();
-    
-    // Initialize donation post type
-    new BR_Donation_Post_Type();
-    
-    // Initialize gallery shortcode
-    new BR_Gallery_Shortcode();
-    
-    // Initialize donation verification
-    new BR_Donation_Verification();
-
-    // Initialize donation review
-    new BR_Donation_Review();
+    BR_Beautiful_Rescues::get_instance();
 }
-add_action('plugins_loaded', 'beautiful_rescues_init');
 
-// Activation hook
-register_activation_hook(__FILE__, 'beautiful_rescues_activate');
-function beautiful_rescues_activate() {
-    // Set default options
-    $default_options = array(
-        'cloudinary_folder' => 'receipts',
-        'allowed_admin_domains' => 'replit.com,21adsmedia.com',
-        'max_file_size' => 5
-    );
+// Initialize on plugins_loaded to ensure all WordPress functions are available
+add_action('plugins_loaded', 'beautiful_rescues_init', 10);
 
-    // Only update if options don't exist
-    if (!get_option('beautiful_rescues_options')) {
-        add_option('beautiful_rescues_options', $default_options);
-    }
-    
-    // Create necessary database tables
-    // Set up default options
-    flush_rewrite_rules();
-}
+// Register activation and deactivation hooks
+register_activation_hook(__FILE__, array('BR_Beautiful_Rescues', 'activate'));
+register_deactivation_hook(__FILE__, array('BR_Beautiful_Rescues', 'deactivate'));
 
 // Add admin notice if Cloudinary credentials are missing
 add_action('admin_notices', 'beautiful_rescues_check_credentials');
@@ -120,10 +108,4 @@ function beautiful_rescues_check_credentials() {
         </div>
         <?php
     }
-}
-
-// Deactivation hook
-register_deactivation_hook(__FILE__, 'beautiful_rescues_deactivate');
-function beautiful_rescues_deactivate() {
-    flush_rewrite_rules();
 } 

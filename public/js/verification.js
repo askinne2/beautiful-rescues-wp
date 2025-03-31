@@ -32,28 +32,23 @@
         // Handle form submission
         $form.on('submit', function(e) {
             e.preventDefault();
-            
-            // Clear previous messages
             $messages.empty();
+
+            // Create FormData object
+            const formData = new FormData(this);
             
-            // Validate file size
-            const files = $fileInput[0].files;
-            for (let i = 0; i < files.length; i++) {
-                if (files[i].size > beautifulRescuesVerification.maxFileSize) {
-                    showMessage('error', 'File size exceeds limit');
-                    return;
-                }
+            // Add selected images if they exist
+            const selectedImages = localStorage.getItem('selectedImages');
+            if (selectedImages) {
+                formData.append('selected_images', selectedImages);
             }
 
-            // Create FormData
-            const formData = new FormData(this);
-            formData.append('action', 'submit_donation_verification');
-            formData.append('nonce', beautifulRescuesVerification.nonce);
-
             // Show loading state
-            $form.addClass('loading');
+            const submitButton = $form.find('button[type="submit"]');
+            const originalText = submitButton.text();
+            submitButton.prop('disabled', true).text('Processing...');
 
-            // Submit form
+            // Submit form via AJAX
             $.ajax({
                 url: beautifulRescuesVerification.ajaxurl,
                 type: 'POST',
@@ -62,26 +57,27 @@
                 contentType: false,
                 success: function(response) {
                     if (response.success) {
-                        showMessage('success', response.message);
+                        $messages.html('<div class="success-message">' + response.message + '</div>');
                         $form[0].reset();
                         $imagePreview.empty();
+                        if (response.redirect) {
+                            setTimeout(function() {
+                                window.location.href = response.redirect;
+                            }, 2000);
+                        }
                     } else {
-                        showMessage('error', response.message);
+                        $messages.html('<div class="error-message">' + response.message + '</div>');
                     }
                 },
-                error: function() {
-                    showMessage('error', 'An error occurred. Please try again.');
+                error: function(xhr, status, error) {
+                    $messages.html('<div class="error-message">An error occurred. Please try again.</div>');
+                    console.error('Form submission error:', error);
                 },
                 complete: function() {
-                    $form.removeClass('loading');
+                    submitButton.prop('disabled', false).text(originalText);
                 }
             });
         });
-
-        // Helper function to show messages
-        function showMessage(type, message) {
-            $messages.html(`<div class="${type}">${message}</div>`);
-        }
     }
 
     // Initialize on document ready

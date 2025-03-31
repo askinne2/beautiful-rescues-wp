@@ -23,7 +23,7 @@
     let currentCategory = gallery.data('category');
     let isLoading = false;
     let hasMoreImages = true;
-    let selectedImages = [];
+    let selectedImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]');
 
     // Initialize gallery functionality
     function initGallery() {
@@ -39,31 +39,33 @@
     // Bind all event handlers
     function bindEventHandlers() {
         // Handle select button clicks
-        gallery.off('click', '.select-button').on('click', '.select-button', function(e) {
-            e.stopPropagation();
+        gallery.on('click', '.select-button', function() {
             const $item = $(this).closest('.gallery-item');
             const publicId = $item.data('public-id');
             const imageUrl = $item.find('img').data('url');
-            
+
             if ($item.hasClass('selected')) {
                 $item.removeClass('selected');
                 selectedImages = selectedImages.filter(img => img.id !== publicId);
+                $(this).text('Select');
             } else {
                 $item.addClass('selected');
-                selectedImages.push({ id: publicId, url: imageUrl });
+                selectedImages.push({
+                    id: publicId,
+                    url: imageUrl
+                });
+                $(this).text('Selected');
             }
-            
-            updateSelectedImagesPreview();
-            verifyDonationBtn.toggle(selectedImages.length > 0);
+
+            updateSelectedImagesStorage();
+            updateSelectedCount();
         });
 
         // Handle zoom button clicks
-        gallery.off('click', '.zoom-button').on('click', '.zoom-button', function(e) {
-            e.stopPropagation();
+        gallery.on('click', '.zoom-button', function() {
             const $item = $(this).closest('.gallery-item');
-            const publicId = $item.data('public-id');
             const imageUrl = $item.find('img').data('url');
-            openModal(publicId, imageUrl);
+            openModal(imageUrl);
         });
 
         // Handle remove image from selection
@@ -71,8 +73,8 @@
             const publicId = $(this).data('public-id');
             $(`.gallery-item[data-public-id="${publicId}"]`).removeClass('selected');
             selectedImages = selectedImages.filter(img => img.id !== publicId);
-            updateSelectedImagesPreview();
-            verifyDonationBtn.toggle(selectedImages.length > 0);
+            updateSelectedImagesStorage();
+            updateSelectedCount();
         });
 
         // Handle verify donation button
@@ -82,6 +84,7 @@
 
         // Handle sort change
         sortSelect.off('change').on('change', function() {
+            console.log('Sort changed:', $(this).val());
             currentSort = $(this).val();
             currentPage = 1;
             hasMoreImages = true;
@@ -92,6 +95,12 @@
 
         // Handle load more
         loadMoreBtn.off('click').on('click', function() {
+            console.log('Load more clicked', {
+                isLoading: isLoading,
+                hasMoreImages: hasMoreImages,
+                currentPage: currentPage
+            });
+            
             if (!isLoading && hasMoreImages) {
                 currentPage++;
                 loadImages();
@@ -120,16 +129,20 @@
         });
     }
 
-    // Update selected images preview
+    // Function to update selected images preview
     function updateSelectedImagesPreview() {
+        const selectedImagesGrid = $('.selected-images-grid');
+        if (!selectedImagesGrid.length) return;
+
         selectedImagesGrid.empty();
         selectedImages.forEach(function(image) {
             if (!image.url) {
                 console.warn('Missing URL for image:', image);
                 return;
             }
-            // Ensure URL is HTTPS
-            const secureUrl = image.url.replace('http://', 'https://');
+            const secureUrl = image.url
+                .replace('http://', 'https://')
+                .replace('/upload/', `/upload/c_fill,w_800,h_800,q_auto,f_auto/l_${beautifulRescuesGallery.watermarkUrl.match(/\/v\d+\/([^\/]+)\.(webp|png|jpg|jpeg)$/)?.[1] || 'br-watermark-2025_2x_uux1x2'},w_0.7,o_50,fl_relative/fl_tiled.layer_apply/`);
             const imageHtml = `
                 <div class="selected-image-item" data-public-id="${image.id}">
                     <img src="${secureUrl}" alt="Selected image">
@@ -138,19 +151,25 @@
             `;
             selectedImagesGrid.append(imageHtml);
         });
+
+        // Trigger custom event for cart
+        $(document).trigger('beautifulRescuesSelectionChanged');
     }
 
     // Modal functions
-    function openModal(publicId, imageUrl) {
-        // Ensure URL is HTTPS
-        const secureUrl = imageUrl.replace('http://', 'https://');
-        modalImage.attr('src', secureUrl);
-        modalImage.attr('data-public-id', publicId);
+    function openModal(imageUrl) {
+        // Ensure URL is HTTPS and add watermark
+        const watermarkId = beautifulRescuesGallery.watermarkUrl.match(/\/v\d+\/([^\/]+)\.(webp|png|jpg|jpeg)$/)?.[1] || 'br-watermark-2025_2x_uux1x2';
+        const modalUrl = imageUrl
+            .replace('http://', 'https://')
+            .replace('/upload/', `/upload/c_limit,w_1200,h_1200,q_auto,f_auto/l_${watermarkId},w_0.2,o_50,fl_relative/fl_tiled.layer_apply/`);
+        modalImage.attr('src', modalUrl);
         modal.fadeIn();
         $('body').addClass('modal-open');
     }
 
     function openDonationModal() {
+        updateSelectedImagesPreview();
         donationModal.fadeIn();
         $('body').addClass('modal-open');
     }
@@ -159,6 +178,7 @@
         $modal.fadeOut();
         if (!$('.gallery-modal:visible, .donation-modal:visible').length) {
             $('body').removeClass('modal-open');
+            $('body').css('padding-right', '');
         }
     }
 
@@ -181,16 +201,29 @@
         const nextImageUrl = nextItem.find('img').data('url');
         const nextPublicId = nextItem.data('public-id');
 
-        // Ensure URL is HTTPS
-        const secureUrl = nextImageUrl.replace('http://', 'https://');
-        modalImage.attr('src', secureUrl);
+        // Ensure URL is HTTPS and add watermark
+        const watermarkId = beautifulRescuesGallery.watermarkUrl.match(/\/v\d+\/([^\/]+)\.(webp|png|jpg|jpeg)$/)?.[1] || 'br-watermark-2025_2x_uux1x2';
+        const modalUrl = nextImageUrl
+            .replace('http://', 'https://')
+            .replace('/upload/', `/upload/c_limit,w_1200,h_1200,q_auto,f_auto/l_${watermarkId},w_0.2,o_50,fl_relative/fl_tiled.layer_apply/`);
+        modalImage.attr('src', modalUrl);
         modalImage.attr('data-public-id', nextPublicId);
     }
 
     // Load images via AJAX
     function loadImages() {
-        if (isLoading) return;
+        if (isLoading) {
+            console.log('Load images skipped - already loading');
+            return;
+        }
         isLoading = true;
+
+        console.log('Loading images with params:', {
+            category: currentCategory,
+            sort: currentSort,
+            page: currentPage,
+            per_page: gallery.data('per-page')
+        });
 
         $.ajax({
             url: beautifulRescuesGallery.ajaxurl,
@@ -204,6 +237,7 @@
                 per_page: gallery.data('per-page')
             },
             success: function(response) {
+                console.log('Load images response:', response);
                 if (response.success) {
                     appendImages(response.data.images);
                     hasMoreImages = response.data.has_more;
@@ -212,10 +246,17 @@
                     }
                     // Rebind event handlers after loading new images
                     bindEventHandlers();
+                } else {
+                    console.error('Load images failed:', response);
                 }
                 isLoading = false;
             },
-            error: function() {
+            error: function(xhr, status, error) {
+                console.error('Load images error:', {
+                    status: status,
+                    error: error,
+                    response: xhr.responseText
+                });
                 isLoading = false;
             }
         });
@@ -435,16 +476,46 @@
         });
     }
 
+    // Function to update selected images count
+    function updateSelectedCount() {
+        const count = selectedImages.length;
+        $('.selected-count').text(count);
+        $('.clear-selection-button').toggle(count > 0);
+        
+        // Trigger custom event for cart
+        $(document).trigger('beautifulRescuesSelectionChanged');
+    }
+
+    // Handle clear selection button
+    $('.clear-selection-button').on('click', function() {
+        selectedImages = [];
+        updateSelectedImagesStorage();
+        updateSelectedCount();
+        $('.select-button').text('Select');
+        updateSelectedImagesPreview();
+    });
+
+    // Function to update localStorage
+    function updateSelectedImagesStorage() {
+        localStorage.setItem('beautifulRescuesSelectedImages', JSON.stringify(selectedImages));
+        // Trigger custom event for cart
+        $(document).trigger('beautifulRescuesSelectionChanged');
+    }
+
     // Initialize on document ready
     $(document).ready(function() {
         initGallery();
         bindFormValidation();
+        updateSelectedCount();
     });
 
     // Close modal on escape key
     $(document).on('keydown', function(e) {
         if (e.key === 'Escape') {
-            closeModal($('.gallery-modal, .donation-modal:visible'));
+            const visibleModal = $('.gallery-modal:visible');
+            if (visibleModal.length) {
+                closeModal(visibleModal);
+            }
         }
     });
 

@@ -1,0 +1,372 @@
+.beautiful-rescues-cart {
+    position: fixed;
+    z-index: 9999;
+    transition: all 0.3s ease;
+}
+
+.beautiful-rescues-cart[data-position="right"] {
+    right: 2rem;
+    bottom: 2rem;
+}
+
+.beautiful-rescues-cart[data-position="left"] {
+    left: 2rem;
+    bottom: 2rem;
+}
+
+.beautiful-rescues-cart[data-position="center"] {
+    left: 50%;
+    bottom: 2rem;
+    transform: translateX(-50%);
+}
+
+.cart-button {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: #4CAF50;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.cart-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+    background: #45a049;
+}
+
+.cart-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cart-count {
+    background: white;
+    color: #4CAF50;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-weight: bold;
+    min-width: 24px;
+    text-align: center;
+}
+
+.cart-text {
+    white-space: nowrap;
+}
+
+/* Compact style */
+.beautiful-rescues-cart[data-style="compact"] .cart-button {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.9rem;
+}
+
+/* Icon-only style */
+.beautiful-rescues-cart[data-style="icon-only"] .cart-button {
+    padding: 1rem;
+    border-radius: 50%;
+}
+
+.beautiful-rescues-cart[data-style="icon-only"] .cart-count {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Hidden state */
+.beautiful-rescues-cart.hidden {
+    transform: translateY(100px);
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Ensure cart stays above modals */
+.beautiful-rescues-cart {
+    z-index: 1001;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .beautiful-rescues-cart[data-style="default"] {
+        left: 1rem;
+        right: 1rem;
+        bottom: 1rem;
+        transform: none;
+    }
+
+    .beautiful-rescues-cart[data-style="default"] .cart-button {
+        justify-content: center;
+    }
+}
+
+/* Donation Modal */
+.donation-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.9);
+    z-index: 1000;
+    padding: 2rem;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.modal-content {
+    position: relative;
+    max-width: 1200px;
+    width: 100%;
+    margin: 2rem auto;
+    background: white;
+    border-radius: 8px;
+    padding: 2rem;
+    overflow: visible;
+}
+
+.modal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    font-size: 2rem;
+    line-height: 1;
+    color: #666;
+    cursor: pointer;
+    padding: 0.5rem;
+    z-index: 1;
+}
+
+.donation-modal-header {
+    margin-bottom: 2rem;
+    text-align: center;
+    padding-right: 3rem;
+}
+
+.donation-modal-header h2 {
+    margin: 0 0 1rem;
+    color: #333;
+    font-size: 1.8rem;
+}
+
+.donation-modal-header p {
+    margin: 0;
+    color: #666;
+    font-size: 1.1rem;
+}
+
+.donation-modal-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: start;
+}
+
+.donation-modal-column {
+    min-width: 0;
+}
+
+.selected-images-preview {
+    margin-bottom: 2rem;
+}
+
+.selected-images-preview h3 {
+    margin: 0 0 1rem;
+    color: #333;
+    font-size: 1.3rem;
+}
+
+.selected-images-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.selected-image-item {
+    position: relative;
+    padding-top: 100%;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #f5f5f5;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.selected-image-item img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.selected-image-remove {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.5);
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    line-height: 1;
+    padding: 0;
+    transition: background 0.2s ease;
+    z-index: 1;
+}
+
+.selected-image-remove:hover {
+    background: rgba(0,0,0,0.7);
+}
+
+/* Form styles */
+.donation-verification-form {
+    max-width: 100%;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.25rem;
+    color: #333;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.form-group input[type="text"],
+.form-group input[type="email"],
+.form-group input[type="tel"],
+.form-group textarea {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    transition: border-color 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    border-color: #4CAF50;
+    outline: none;
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-help {
+    display: block;
+    margin-top: 0.25rem;
+    color: #666;
+    font-size: 0.85rem;
+}
+
+.submit-donation {
+    width: 100%;
+    padding: 0.75rem;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    margin-top: 0.5rem;
+}
+
+.submit-donation:hover {
+    background: #45a049;
+}
+
+.submit-donation:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+    .modal-content {
+        max-width: 90%;
+        margin: 1rem auto;
+        padding: 1.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .donation-modal {
+        padding: 1rem;
+    }
+
+    .modal-content {
+        margin: 0;
+        border-radius: 0;
+        padding: 1rem;
+    }
+
+    .donation-modal-body {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    .selected-images-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .donation-modal-header {
+        padding-right: 2.5rem;
+    }
+
+    .donation-modal-header h2 {
+        font-size: 1.5rem;
+    }
+
+    .donation-modal-header p {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .selected-images-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .donation-modal {
+        padding: 0;
+    }
+
+    .modal-content {
+        padding: 1rem;
+    }
+}
+
+/* Fix body scroll when modal is open */
+body.modal-open {
+    overflow: hidden;
+    padding-right: 0 !important;
+} 

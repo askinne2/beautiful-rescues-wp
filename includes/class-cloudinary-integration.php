@@ -13,21 +13,18 @@ class BR_Cloudinary_Integration {
     // Define available cat folders
     private $cat_folders = [
         "Black",
-        "BlackWhite", 
+        "BlackWhite",
         "Calico",
+        "Ginger",
         "Grey",
         "Mixed",
         "Multiple",
-        "Orange", 
-        "Other",
-        "White",
         "Pointed",
         "Seasonal",
         "Special",
-        "Tortie",
-        "Tuxedo",
         "Tabby",
-        "Siamese"
+        "Tortie",
+        "White"
     ];
 
     public function __construct() {
@@ -126,28 +123,41 @@ class BR_Cloudinary_Integration {
     /**
      * Generate Cloudinary URL with transformations
      */
-    public function generate_image_url($public_id, $options = []) {
-        $default_options = [
+    public function generate_image_url($public_id, $options = array()) {
+        // Default options
+        $default_options = array(
             'width' => 800,
             'height' => 800,
             'crop' => 'fill',
             'quality' => 'auto',
-            'format' => 'auto'
-        ];
-
-        $options = wp_parse_args($options, $default_options);
-
-        $transformations = array(
-            "c_{$options['crop']},w_{$options['width']},h_{$options['height']}",
-            "q_{$options['quality']},f_{$options['format']}"
+            'format' => 'auto',
+            'watermark' => true
         );
 
-        if (isset($options['watermark']) && $options['watermark']) {
-            $transformations[] = 'l_br-watermark_lvbxtf,o_50,w_0.4,g_south_east';
+        // Merge with provided options
+        $options = wp_parse_args($options, $default_options);
+
+        // Build transformations array
+        $transformations = array();
+
+        // Add watermark if enabled
+        if ($options['watermark'] && get_option('enable_watermark')) {
+            $watermark_url = get_option('watermark_url', 'https://res.cloudinary.com/dgnb4yyrc/image/upload/v1743356913/br-watermark-2025_2x_uux1x2.webp');
+            // Extract the public ID from the watermark URL
+            if (preg_match('/\/v\d+\/([^\/]+)\.(webp|png|jpg|jpeg)$/', $watermark_url, $matches)) {
+                $watermark_public_id = $matches[1];
+                $transformations[] = "l_{$watermark_public_id},w_0.7,o_50,fl_relative/fl_tiled.layer_apply";
+            }
         }
 
+        // Add main image transformations last
+        $transformations[] = "c_{$options['crop']},w_{$options['width']},h_{$options['height']}";
+        $transformations[] = "q_{$options['quality']},f_{$options['format']}";
+
+        // Join transformations with forward slashes
         $transformations_string = implode('/', $transformations);
-        
+
+        // Return the complete URL
         return "https://res.cloudinary.com/{$this->cloud_name}/image/upload/{$transformations_string}/{$public_id}";
     }
 
@@ -159,11 +169,19 @@ class BR_Cloudinary_Integration {
     }
 
     /**
-     * Get images from a specific folder
+     * Get images from a specific folder with rate limiting
      */
     public function get_images_from_folder($folder = '', $limit = 20, $sort = 'random', $page = 1) {
         if (!$this->init_cloudinary()) {
             return [];
+        }
+
+        // Rate limiting
+        $transient_key = 'br_gallery_' . md5($folder . $sort . $page);
+        $cached_result = get_transient($transient_key);
+        
+        if ($cached_result !== false) {
+            return $cached_result;
         }
 
         try {
@@ -248,6 +266,9 @@ class BR_Cloudinary_Integration {
 
             // Apply pagination
             $resources = array_slice($resources, $offset, $limit);
+
+            // Cache the results for 5 minutes
+            set_transient($transient_key, $resources, 5 * MINUTE_IN_SECONDS);
 
             return $resources;
         } catch (Exception $e) {

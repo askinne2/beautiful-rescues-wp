@@ -37,12 +37,30 @@ class BR_Settings {
 
     public function register_settings() {
         register_setting('beautiful_rescues_options', 'beautiful_rescues_options');
+        register_setting('beautiful_rescues_options', 'enable_watermark');
+        register_setting('beautiful_rescues_options', 'watermark_url');
 
         add_settings_section(
             'cloudinary_settings',
             'Cloudinary Settings',
             array($this, 'render_cloudinary_section'),
             'beautiful-rescues'
+        );
+
+        add_settings_field(
+            'enable_watermark',
+            'Enable Watermark',
+            array($this, 'render_enable_watermark_field'),
+            'beautiful-rescues',
+            'cloudinary_settings'
+        );
+
+        add_settings_field(
+            'watermark_url',
+            'Watermark URL',
+            array($this, 'render_watermark_url_field'),
+            'beautiful-rescues',
+            'cloudinary_settings'
         );
 
         add_settings_field(
@@ -144,7 +162,7 @@ class BR_Settings {
     }
 
     public function render_cloudinary_folder_field() {
-        $value = $this->options['cloudinary_folder'] ?? 'receipts';
+        $value = $this->options['cloudinary_folder'] ?? 'Cats';
         ?>
         <input type="text" name="beautiful_rescues_options[cloudinary_folder]" 
                value="<?php echo esc_attr($value); ?>" class="regular-text">
@@ -160,6 +178,27 @@ class BR_Settings {
             Enable debug logging
         </label>
         <p class="description">When enabled, detailed logs will be written to <?php echo esc_html(WP_CONTENT_DIR . '/beautiful-rescues-debug.log'); ?></p>
+        <?php
+    }
+
+    public function render_enable_watermark_field() {
+        $value = get_option('enable_watermark', true);
+        ?>
+        <label>
+            <input type="checkbox" name="enable_watermark" 
+                   value="1" <?php checked($value, true); ?>>
+            Enable watermark on gallery images
+        </label>
+        <p class="description">When enabled, a watermark will be added to all gallery images.</p>
+        <?php
+    }
+
+    public function render_watermark_url_field() {
+        $value = get_option('watermark_url', 'https://res.cloudinary.com/dgnb4yyrc/image/upload/v1743356531/br-watermark-2025_2x_baljip.webp');
+        ?>
+        <input type="text" name="watermark_url" 
+               value="<?php echo esc_attr($value); ?>" class="regular-text">
+        <p class="description">Enter the full URL of your watermark image. Recommended format: WebP with transparency.</p>
         <?php
     }
 } 
