@@ -86,7 +86,7 @@ class BR_Gallery_Shortcode {
             <!-- Gallery Controls -->
             <div class="gallery-controls">
                 <div class="gallery-sort">
-                    <label for="gallery-sort"><?php _e('Sort by:', 'beautiful-rescues'); ?></label>
+                    <!--label for="gallery-sort"><?php _e('Sort by:', 'beautiful-rescues'); ?></label-->
                     <select id="gallery-sort" class="gallery-sort-select">
                         <option value="random" <?php selected($atts['sort'], 'random'); ?>><?php _e('Random', 'beautiful-rescues'); ?></option>
                         <option value="newest" <?php selected($atts['sort'], 'newest'); ?>><?php _e('Newest First', 'beautiful-rescues'); ?></option>

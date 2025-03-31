@@ -246,9 +246,11 @@ class BR_Donation_Verification {
         update_post_meta($post_id, '_submission_date', current_time('mysql'));
         error_log('Set submission date');
 
-        // Send notifications
-        do_action('beautiful_rescues_verification_submitted', $post_id);
-        error_log('Triggered verification submitted action');
+        // Send email notifications
+        error_log('Triggering email notifications');
+        $this->send_admin_notification($post_id);
+        $this->send_donor_confirmation($post_id);
+        error_log('Email notifications triggered');
 
         error_log('Verification submission successful. Post ID: ' . $post_id);
         error_log('========== END DONATION VERIFICATION SUBMISSION ==========');
@@ -265,32 +267,52 @@ class BR_Donation_Verification {
     /**
      * Process form submission
      */
-    private function process_form_submission($fields, $form_type) {
-        // Extract selected images from the form submission
-        $selected_images = array();
-        if (isset($fields['selected_cloudinary_images'])) {
-            $selected_images = json_decode(stripslashes($fields['selected_cloudinary_images']), true);
-        }
+    private function process_form_submission($fields, $files, $form_type = 'default') {
+        error_log('========== START PROCESS FORM SUBMISSION ==========');
+        error_log('Fields: ' . print_r($fields, true));
+        error_log('Files: ' . print_r($files, true));
+        error_log('Form type: ' . $form_type);
 
-        if (empty($selected_images)) {
-            return;
-        }
-
-        // Create donation post
-        $donation_data = array(
+        // Create verification post
+        $post_data = array(
             'post_title' => sprintf(
-                'Donation from %s %s',
+                'Verification - %s %s - %s',
                 sanitize_text_field($fields['first_name']),
-                sanitize_text_field($fields['last_name'])
+                sanitize_text_field($fields['last_name']),
+                current_time('Y-m-d H:i:s')
             ),
             'post_type' => 'verification',
-            'post_status' => 'publish'
+            'post_status' => 'pending'
         );
 
-        $donation_id = wp_insert_post($donation_data);
-
+        $donation_id = wp_insert_post($post_data);
         if (is_wp_error($donation_id)) {
-            return;
+            error_log('Failed to create verification post: ' . $donation_id->get_error_message());
+            return false;
+        }
+        error_log('Created verification post with ID: ' . $donation_id);
+
+        // Handle file upload
+        if (!empty($files['verification_file'])) {
+            $file = $files['verification_file'];
+            $upload_dir = wp_upload_dir();
+            $verification_dir = $upload_dir['basedir'] . '/verifications';
+            
+            if (!file_exists($verification_dir)) {
+                wp_mkdir_p($verification_dir);
+            }
+
+            $file_ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+            $unique_filename = uniqid('verification-', true) . '.' . $file_ext;
+            $destination = $verification_dir . '/' . $unique_filename;
+
+            if (move_uploaded_file($file['tmp_name'], $destination)) {
+                update_post_meta($donation_id, '_verification_file', $unique_filename);
+                update_post_meta($donation_id, '_verification_file_path', $destination);
+                error_log('File uploaded successfully: ' . $destination);
+            } else {
+                error_log('Failed to move uploaded file to: ' . $destination);
+            }
         }
 
         // Store verification data
@@ -298,28 +320,54 @@ class BR_Donation_Verification {
         update_post_meta($donation_id, '_last_name', sanitize_text_field($fields['last_name']));
         update_post_meta($donation_id, '_email', sanitize_email($fields['email']));
         update_post_meta($donation_id, '_phone', sanitize_text_field($fields['phone']));
-        update_post_meta($donation_id, '_selected_images', $selected_images);
+        update_post_meta($donation_id, '_message', sanitize_textarea_field($fields['message']));
         update_post_meta($donation_id, '_status', 'pending');
         update_post_meta($donation_id, '_form_type', $form_type);
 
-        // Send email notification
+        // Handle selected images if present
+        if (!empty($fields['selected_images'])) {
+            $selected_images = json_decode(stripslashes($fields['selected_images']), true);
+            if (is_array($selected_images)) {
+                update_post_meta($donation_id, '_selected_images', $selected_images);
+                error_log('Stored selected images: ' . print_r($selected_images, true));
+            }
+        }
+
+        error_log('Stored verification data');
+
+        // Send email notifications
+        error_log('Triggering email notifications');
         $this->send_admin_notification($donation_id);
+        $this->send_donor_confirmation($donation_id);
+        error_log('Email notifications triggered');
+
+        error_log('========== END PROCESS FORM SUBMISSION ==========');
+        return $donation_id;
     }
 
     /**
      * Send admin notification
      */
     private function send_admin_notification($post_id) {
+        error_log('========== START ADMIN NOTIFICATION ==========');
+        error_log('Post ID: ' . $post_id);
+        
         $admin_email = get_option('admin_email');
+        error_log('Admin email: ' . $admin_email);
+        
         $donor_email = get_post_meta($post_id, '_email', true);
+        error_log('Donor email: ' . $donor_email);
+        
         $donor_name = sprintf(
             '%s %s',
             get_post_meta($post_id, '_first_name', true),
             get_post_meta($post_id, '_last_name', true)
         );
+        error_log('Donor name: ' . $donor_name);
 
         // Get verification status
         $status = get_post_meta($post_id, '_status', true);
+        error_log('Status: ' . $status);
 
         // Admin notification
         $admin_subject = sprintf('New Donation Verification from %s', $donor_name);
@@ -341,22 +389,34 @@ class BR_Donation_Verification {
             home_url('/review-donations/')
         );
 
-        wp_mail($admin_email, $admin_subject, $admin_message);
+        error_log('Admin email subject: ' . $admin_subject);
+        error_log('Admin email message: ' . $admin_message);
+
+        $admin_sent = wp_mail($admin_email, $admin_subject, $admin_message);
+        error_log('Admin email sent: ' . ($admin_sent ? 'Yes' : 'No'));
+        error_log('========== END ADMIN NOTIFICATION ==========');
     }
 
     /**
      * Send donor confirmation
      */
     private function send_donor_confirmation($post_id) {
+        error_log('========== START DONOR CONFIRMATION ==========');
+        error_log('Post ID: ' . $post_id);
+        
         $donor_email = get_post_meta($post_id, '_email', true);
+        error_log('Donor email: ' . $donor_email);
+        
         $donor_name = sprintf(
             '%s %s',
             get_post_meta($post_id, '_first_name', true),
             get_post_meta($post_id, '_last_name', true)
         );
+        error_log('Donor name: ' . $donor_name);
 
         // Get verification status
         $status = get_post_meta($post_id, '_status', true);
+        error_log('Status: ' . $status);
 
         $donor_subject = 'Thank you for your donation verification';
         $donor_message = sprintf(
@@ -379,6 +439,11 @@ class BR_Donation_Verification {
             $status
         );
 
-        wp_mail($donor_email, $donor_subject, $donor_message);
+        error_log('Donor email subject: ' . $donor_subject);
+        error_log('Donor email message: ' . $donor_message);
+
+        $donor_sent = wp_mail($donor_email, $donor_subject, $donor_message);
+        error_log('Donor email sent: ' . ($donor_sent ? 'Yes' : 'No'));
+        error_log('========== END DONOR CONFIRMATION ==========');
     }
 } 
