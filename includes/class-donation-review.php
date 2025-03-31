@@ -197,7 +197,7 @@ class BR_Donation_Review {
         ]);
 
         $args = array(
-            'post_type' => 'donation',
+            'post_type' => 'verification',
             'posts_per_page' => $per_page,
             'paged' => $page,
             'orderby' => 'date',
@@ -207,7 +207,7 @@ class BR_Donation_Review {
         // Add status filter if specified
         if ($status && $status !== 'all') {
             $args['meta_query'][] = array(
-                'key' => '_verification_status',
+                'key' => '_status',
                 'value' => $status
             );
         }
@@ -217,17 +217,17 @@ class BR_Donation_Review {
             $args['meta_query'][] = array(
                 'relation' => 'OR',
                 array(
-                    'key' => '_donor_first_name',
+                    'key' => '_first_name',
                     'value' => $search,
                     'compare' => 'LIKE'
                 ),
                 array(
-                    'key' => '_donor_last_name',
+                    'key' => '_last_name',
                     'value' => $search,
                     'compare' => 'LIKE'
                 ),
                 array(
-                    'key' => '_donor_email',
+                    'key' => '_email',
                     'value' => $search,
                     'compare' => 'LIKE'
                 )
@@ -256,10 +256,10 @@ class BR_Donation_Review {
                 // Debug log each donation's meta data
                 $this->debug->log('Processing donation ID: ' . $post_id);
                 $this->debug->log('Donation meta', [
-                    'first_name' => get_post_meta($post_id, '_donor_first_name', true),
-                    'last_name' => get_post_meta($post_id, '_donor_last_name', true),
-                    'email' => get_post_meta($post_id, '_donor_email', true),
-                    'status' => get_post_meta($post_id, '_verification_status', true)
+                    'first_name' => get_post_meta($post_id, '_first_name', true),
+                    'last_name' => get_post_meta($post_id, '_last_name', true),
+                    'email' => get_post_meta($post_id, '_email', true),
+                    'status' => get_post_meta($post_id, '_status', true)
                 ]);
 
                 $donations[] = array(
@@ -269,11 +269,11 @@ class BR_Donation_Review {
                     'time' => get_the_time('g:i A'),
                     'donor_name' => sprintf(
                         '%s %s',
-                        get_post_meta($post_id, '_donor_first_name', true),
-                        get_post_meta($post_id, '_donor_last_name', true)
+                        get_post_meta($post_id, '_first_name', true),
+                        get_post_meta($post_id, '_last_name', true)
                     ),
-                    'email' => get_post_meta($post_id, '_donor_email', true),
-                    'status' => get_post_meta($post_id, '_verification_status', true) ?: 'pending',
+                    'email' => get_post_meta($post_id, '_email', true),
+                    'status' => get_post_meta($post_id, '_status', true) ?: 'pending',
                     'verification_file' => get_post_meta($post_id, '_verification_file', true),
                     'selected_images' => get_post_meta($post_id, '_selected_images', true)
                 );
@@ -306,11 +306,11 @@ class BR_Donation_Review {
         $donation_id = intval($_POST['donation_id']);
         $donation = get_post($donation_id);
 
-        if (!$donation || $donation->post_type !== 'donation') {
-            wp_send_json_error('Invalid donation ID');
+        if (!$donation || $donation->post_type !== 'verification') {
+            wp_send_json_error('Invalid verification ID');
         }
 
-        $this->debug->log('Getting donation details for ID: ' . $donation_id);
+        $this->debug->log('Getting verification details for ID: ' . $donation_id);
 
         // Get the verification file URL
         $verification_file = get_post_meta($donation_id, '_verification_file', true);
@@ -319,7 +319,7 @@ class BR_Donation_Review {
         // If no URL is stored, construct it
         if (!$verification_file_url && $verification_file) {
             $upload_dir = wp_upload_dir();
-            $verification_file_url = str_replace('http://', 'https://', $upload_dir['baseurl']) . '/donation-verifications/' . $verification_file;
+            $verification_file_url = str_replace('http://', 'https://', $upload_dir['baseurl']) . '/verifications/' . $verification_file;
         }
 
         // Get selected images and ensure HTTPS URLs
@@ -336,19 +336,19 @@ class BR_Donation_Review {
             'id' => $donation_id,
             'title' => $donation->post_title,
             'date' => get_the_date('F j, Y', $donation),
-            'donor_name' => get_post_meta($donation_id, '_donor_first_name', true) . ' ' . get_post_meta($donation_id, '_donor_last_name', true),
-            'donor_email' => get_post_meta($donation_id, '_donor_email', true),
-            'donor_phone' => get_post_meta($donation_id, '_donor_phone', true),
-            'donor_message' => get_post_meta($donation_id, '_donor_message', true),
+            'donor_name' => get_post_meta($donation_id, '_first_name', true) . ' ' . get_post_meta($donation_id, '_last_name', true),
+            'donor_email' => get_post_meta($donation_id, '_email', true),
+            'donor_phone' => get_post_meta($donation_id, '_phone', true),
+            'donor_message' => get_post_meta($donation_id, '_message', true),
             'verification_file' => array(
                 'url' => $verification_file_url,
                 'type' => wp_check_filetype($verification_file)['type']
             ),
             'selected_images' => $selected_images,
-            'status' => get_post_meta($donation_id, '_verification_status', true) ?: 'pending'
+            'status' => get_post_meta($donation_id, '_status', true) ?: 'pending'
         );
 
-        $this->debug->log('Donation details retrieved', $donation_data);
+        $this->debug->log('Verification details retrieved', $donation_data);
         wp_send_json_success($donation_data);
     }
 
@@ -375,11 +375,11 @@ class BR_Donation_Review {
         ));
 
         // Update status
-        update_post_meta($donation_id, '_verification_status', $status);
+        update_post_meta($donation_id, '_status', $status);
 
         // Get donation details for email
-        $donor_name = get_post_meta($donation_id, '_donor_first_name', true) . ' ' . get_post_meta($donation_id, '_donor_last_name', true);
-        $donor_email = get_post_meta($donation_id, '_donor_email', true);
+        $donor_name = get_post_meta($donation_id, '_first_name', true) . ' ' . get_post_meta($donation_id, '_last_name', true);
+        $donor_email = get_post_meta($donation_id, '_email', true);
         $selected_images = get_post_meta($donation_id, '_selected_images', true);
 
         // Send email notification
@@ -411,15 +411,15 @@ class BR_Donation_Review {
         wp_set_object_terms($donation_id, $status, 'donation_status');
 
         // Update the meta field for consistency
-        update_post_meta($donation_id, '_verification_status', $status);
+        update_post_meta($donation_id, '_status', $status);
 
         // Get donor details for notification
         $donor_name = sprintf(
             '%s %s',
-            get_post_meta($donation_id, '_donor_first_name', true),
-            get_post_meta($donation_id, '_donor_last_name', true)
+            get_post_meta($donation_id, '_first_name', true),
+            get_post_meta($donation_id, '_last_name', true)
         );
-        $donor_email = get_post_meta($donation_id, '_donor_email', true);
+        $donor_email = get_post_meta($donation_id, '_email', true);
 
         // Send email notification
         $this->send_status_notification($donor_email, $donor_name, $status);

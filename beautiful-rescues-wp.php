@@ -66,8 +66,8 @@ if (file_exists($autoload_file)) {
 // Include required files
 require_once BR_PLUGIN_DIR . 'includes/class-beautiful-rescues.php';
 require_once BR_PLUGIN_DIR . 'includes/class-settings.php';
+require_once BR_PLUGIN_DIR . 'includes/class-verification-post-type.php';
 require_once BR_PLUGIN_DIR . 'includes/class-cloudinary-integration.php';
-require_once BR_PLUGIN_DIR . 'includes/class-donation-post-type.php';
 require_once BR_PLUGIN_DIR . 'includes/class-gallery-shortcode.php';
 require_once BR_PLUGIN_DIR . 'includes/class-donation-verification.php';
 require_once BR_PLUGIN_DIR . 'includes/class-donation-review.php';

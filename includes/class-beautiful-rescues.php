@@ -35,6 +35,13 @@ class BR_Beautiful_Rescues {
     private $debug;
 
     /**
+     * Settings instance
+     *
+     * @var BR_Settings
+     */
+    private $settings;
+
+    /**
      * Get plugin instance
      *
      * @return BR_Beautiful_Rescues
@@ -145,13 +152,15 @@ class BR_Beautiful_Rescues {
      * Initialize the plugin
      */
     public function init() {
-
         // Load text domain
         load_plugin_textdomain('beautiful-rescues', false, dirname(plugin_basename(__FILE__)) . '/languages');
 
-        // Register post types and taxonomies
-        add_action('init', array($this, 'register_post_types'));
-        add_action('init', array($this, 'register_taxonomies'));
+        // Register post types and taxonomies on init hook with priority 0
+        add_action('init', array($this, 'register_post_types'), 0);
+        add_action('init', array($this, 'register_taxonomies'), 0);
+
+        // Initialize components after post types are registered
+        add_action('init', array($this, 'init_components'), 1);
 
         // Register shortcodes immediately
         $this->register_shortcodes();
@@ -160,100 +169,100 @@ class BR_Beautiful_Rescues {
         add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
 
-        // Register AJAX handlers
-        add_action('wp_ajax_submit_donation_verification', array($this, 'handle_donation_verification'));
-        add_action('wp_ajax_nopriv_submit_donation_verification', array($this, 'handle_donation_verification'));
+        // Register admin menu after post types are registered (priority 20 to ensure post type exists)
+        add_action('admin_menu', array($this, 'register_admin_menu'), 20);
 
         // Register template hooks
         add_filter('theme_page_templates', array($this, 'add_checkout_template'));
         add_filter('template_include', array($this, 'load_checkout_template'));
         add_filter('single_template', array($this, 'load_donation_template'));
-        
-        // Initialize components
-        $this->init_components();
     }
 
     /**
-     * Initialize plugin components
+     * Register post types
      */
-    private function init_components() {
-        // Initialize settings
-        new BR_Settings();
-        
-        // Initialize Cloudinary integration
-        new BR_Cloudinary_Integration();
-        
-        // Initialize donation post type
-        new BR_Donation_Post_Type();
-        
-        // Initialize gallery shortcode
-        new BR_Gallery_Shortcode();
-        
-        // Initialize donation verification
-        new BR_Donation_Verification();
+    public function register_post_types() {
+        // Register verifications post type
+        $labels = array(
+            'name'               => _x('Verifications', 'post type general name', 'beautiful-rescues'),
+            'singular_name'      => _x('Verification', 'post type singular name', 'beautiful-rescues'),
+            'menu_name'          => _x('Verifications', 'admin menu', 'beautiful-rescues'),
+            'add_new'            => _x('Add New', 'verification', 'beautiful-rescues'),
+            'add_new_item'       => __('Add New Verification', 'beautiful-rescues'),
+            'edit_item'          => __('Edit Verification', 'beautiful-rescues'),
+            'new_item'           => __('New Verification', 'beautiful-rescues'),
+            'view_item'          => __('View Verification', 'beautiful-rescues'),
+            'search_items'       => __('Search Verifications', 'beautiful-rescues'),
+            'not_found'          => __('No verifications found', 'beautiful-rescues'),
+            'not_found_in_trash' => __('No verifications found in Trash', 'beautiful-rescues'),
+        );
 
-        // Initialize donation review
-        new BR_Donation_Review();
+        $args = array(
+            'labels'              => $labels,
+            'public'              => true,
+            'publicly_queryable'  => true,
+            'show_ui'             => true,
+            'show_in_menu'        => false, // We'll add it as a submenu
+            'query_var'           => true,
+            'rewrite'             => array('slug' => 'verification'),
+            'capability_type'     => 'post',
+            'has_archive'         => true,
+            'hierarchical'        => false,
+            'menu_position'       => null,
+            'supports'            => array('title'),
+            'show_in_rest'        => false,
+        );
 
-        // Initialize cart shortcode
-        new BR_Cart_Shortcode();
+        register_post_type('verification', $args);
+        error_log('Registered verification post type');
     }
 
     /**
-     * Add checkout template to page templates
+     * Register taxonomies
      */
-    public function add_checkout_template($templates) {
-
-        if (is_array($templates)) {
-            // For WordPress page templates
-            $templates['checkout.php'] = __('Checkout Page', 'beautiful-rescues');
-        }
-        return $templates;
+    public function register_taxonomies() {
+        // Taxonomies are registered by their respective classes
     }
 
     /**
-     * Load checkout template
+     * Register shortcodes
      */
-    public function load_checkout_template($template) {
+    public function register_shortcodes() {
 
-        // Check if we're on a page with our template
-        if (is_page() && get_page_template_slug() === 'checkout.php') {
-            $new_template = plugin_dir_path(dirname(__FILE__)) . 'templates/checkout.php';
-            if (file_exists($new_template)) {
-                
-                // If Elementor is active and we're in the editor, let Elementor handle it
-                if (defined('ELEMENTOR_VERSION') && isset($_GET['elementor-preview'])) {
-                    $this->debug->log('In Elementor preview, using original template', null, 'info');
-                    return $template;
-                }
-                return $new_template;
-            } else {
-                $this->debug->log('Checkout template file not found', array(
-                    'template_path' => $new_template,
-                    'plugin_dir' => plugin_dir_path(dirname(__FILE__)),
-                    'templates_dir' => plugin_dir_path(dirname(__FILE__)) . 'templates/',
-                    'dir_exists' => is_dir(plugin_dir_path(dirname(__FILE__)) . 'templates/')
-                ), 'error');
-            }
-        }
-        return $template;
+        add_shortcode('beautiful_rescues_cart', array($this, 'render_cart_shortcode'));
     }
 
     /**
-     * Load single donation template
+     * Render cart shortcode
      */
-    public function load_donation_template($template) {
-        global $post;
+    public function render_cart_shortcode($atts) {
+        $this->debug->log('Rendering cart shortcode', array(
+            'atts' => $atts,
+            'is_admin' => is_admin()
+        ), 'info');
 
-        if ($post->post_type === 'donation') {
-            $custom_template = BR_PLUGIN_DIR . 'templates/single-donation.php';
-            
-            if (file_exists($custom_template)) {
-                return $custom_template;
-            }
-        }
+        // Parse attributes
+        $atts = shortcode_atts(array(
+            'style' => 'default'
+        ), $atts);
 
-        return $template;
+        // Start output buffering
+        ob_start();
+        ?>
+        <div class="beautiful-rescues-cart beautiful-rescues-cart-<?php echo esc_attr($atts['style']); ?>">
+            <div class="cart-header">
+                <h3><?php _e('Selected Images', 'beautiful-rescues'); ?></h3>
+                <span class="cart-count">0</span>
+            </div>
+            <div class="cart-items">
+                <!-- Cart items will be populated via JavaScript -->
+            </div>
+            <div class="cart-footer">
+                <button class="checkout-button" disabled><?php _e('Proceed to Checkout', 'beautiful-rescues'); ?></button>
+            </div>
+        </div>
+        <?php
+        return ob_get_clean();
     }
 
     /**
@@ -322,7 +331,7 @@ class BR_Beautiful_Rescues {
 
             wp_localize_script('beautiful-rescues-checkout', 'beautifulRescuesCheckout', array(
                 'ajaxurl' => admin_url('admin-ajax.php'),
-                'nonce' => wp_create_nonce('beautiful_rescues_cart_nonce'),
+                'nonce' => wp_create_nonce('beautiful_rescues_verification_nonce'),
                 'homeUrl' => home_url(),
                 'watermarkUrl' => get_option('watermark_url', 'https://res.cloudinary.com/dgnb4yyrc/image/upload/v1743356531/br-watermark-2025_2x_baljip.webp'),
                 'i18n' => array(
@@ -373,65 +382,159 @@ class BR_Beautiful_Rescues {
     }
 
     /**
-     * Register post types
+     * Register admin menu
      */
-    public function register_post_types() {
-        // Register post types here
+    public function register_admin_menu() {
+        // Add main menu
+        add_menu_page(
+            __('Beautiful Rescues', 'beautiful-rescues'),
+            __('Beautiful Rescues', 'beautiful-rescues'),
+            'manage_options',
+            'beautiful-rescues',
+            array($this, 'render_admin_page'),
+            'dashicons-heart',
+            20
+        );
+
+        // Add Settings submenu
+        add_submenu_page(
+            'beautiful-rescues',
+            __('Beautiful Rescues Settings', 'beautiful-rescues'),
+            __('Settings', 'beautiful-rescues'),
+            'manage_options',
+            'beautiful-rescues-settings',
+            array($this, 'render_admin_page')
+        );
+
+        // Add Verifications submenu
+        add_submenu_page(
+            'beautiful-rescues',
+            __('Verifications', 'beautiful-rescues'),
+            __('Verifications', 'beautiful-rescues'),
+            'manage_options',
+            'edit.php?post_type=verification'
+        );
     }
 
     /**
-     * Register taxonomies
+     * Render the admin page content
      */
-    public function register_taxonomies() {
-        // Register taxonomies here
-    }
-
-    /**
-     * Register shortcodes
-     */
-    public function register_shortcodes() {
-
-        add_shortcode('beautiful_rescues_cart', array($this, 'render_cart_shortcode'));
-    }
-
-    /**
-     * Render cart shortcode
-     */
-    public function render_cart_shortcode($atts) {
-        $this->debug->log('Rendering cart shortcode', array(
-            'atts' => $atts,
-            'is_admin' => is_admin()
-        ), 'info');
-
-        // Parse attributes
-        $atts = shortcode_atts(array(
-            'style' => 'default'
-        ), $atts);
-
-        // Start output buffering
-        ob_start();
-        ?>
-        <div class="beautiful-rescues-cart beautiful-rescues-cart-<?php echo esc_attr($atts['style']); ?>">
-            <div class="cart-header">
-                <h3><?php _e('Selected Images', 'beautiful-rescues'); ?></h3>
-                <span class="cart-count">0</span>
+    public function render_admin_page() {
+        if (!current_user_can('manage_options')) {
+            return;
+        }
+        
+        // Get current page
+        $page = isset($_GET['page']) ? $_GET['page'] : '';
+        
+        // Render different content based on the page
+        if ($page === 'beautiful-rescues-settings') {
+            $this->settings->render_settings_form();
+        } else {
+            // Default main page content
+            ?>
+            <div class="wrap">
+                <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
+                <div class="beautiful-rescues-dashboard">
+                    <h2><?php _e('Welcome to Beautiful Rescues', 'beautiful-rescues'); ?></h2>
+                    <p><?php _e('Use the menu on the left to manage your rescue verifications and settings.', 'beautiful-rescues'); ?></p>
+                </div>
             </div>
-            <div class="cart-items">
-                <!-- Cart items will be populated via JavaScript -->
-            </div>
-            <div class="cart-footer">
-                <button class="checkout-button" disabled><?php _e('Proceed to Checkout', 'beautiful-rescues'); ?></button>
-            </div>
-        </div>
-        <?php
-        return ob_get_clean();
+            <?php
+        }
     }
 
     /**
-     * Handle donation verification
+     * Initialize plugin components
      */
-    public function handle_donation_verification() {
-        // Handle donation verification here
+    public function init_components() {
+        $this->debug->log('Initializing components', array(
+            'post_type_exists' => post_type_exists('verification'),
+            'current_hook' => current_filter()
+        ));
+
+        // Initialize settings
+        $this->settings = new BR_Settings();
+        
+        // Initialize Cloudinary integration
+        new BR_Cloudinary_Integration();
+        
+        // Initialize verification post type
+        if (post_type_exists('verification')) {
+            new BR_Verification_Post_Type();
+            $this->debug->log('Initialized verification post type');
+        } else {
+            $this->debug->log('Verification post type does not exist during component initialization', null, 'error');
+        }
+        
+        // Initialize gallery shortcode
+        new BR_Gallery_Shortcode();
+        
+        // Initialize donation verification
+        new BR_Donation_Verification();
+
+        // Initialize donation review
+        new BR_Donation_Review();
+
+        // Initialize cart shortcode
+        new BR_Cart_Shortcode();
+    }
+
+    /**
+     * Add checkout template to page templates
+     */
+    public function add_checkout_template($templates) {
+
+        if (is_array($templates)) {
+            // For WordPress page templates
+            $templates['checkout.php'] = __('Checkout Page', 'beautiful-rescues');
+        }
+        return $templates;
+    }
+
+    /**
+     * Load checkout template
+     */
+    public function load_checkout_template($template) {
+
+        // Check if we're on a page with our template
+        if (is_page() && get_page_template_slug() === 'checkout.php') {
+            $new_template = plugin_dir_path(dirname(__FILE__)) . 'templates/checkout.php';
+            if (file_exists($new_template)) {
+                
+                // If Elementor is active and we're in the editor, let Elementor handle it
+                if (defined('ELEMENTOR_VERSION') && isset($_GET['elementor-preview'])) {
+                    $this->debug->log('In Elementor preview, using original template', null, 'info');
+                    return $template;
+                }
+                return $new_template;
+            } else {
+                $this->debug->log('Checkout template file not found', array(
+                    'template_path' => $new_template,
+                    'plugin_dir' => plugin_dir_path(dirname(__FILE__)),
+                    'templates_dir' => plugin_dir_path(dirname(__FILE__)) . 'templates/',
+                    'dir_exists' => is_dir(plugin_dir_path(dirname(__FILE__)) . 'templates/')
+                ), 'error');
+            }
+        }
+        return $template;
+    }
+
+    /**
+     * Load single donation template
+     */
+    public function load_donation_template($template) {
+        global $post;
+
+        if ($post->post_type === 'verification') {
+            $custom_template = BR_PLUGIN_DIR . 'templates/single-verification.php';
+            
+            if (file_exists($custom_template)) {
+                return $custom_template;
+            }
+        }
+
+        return $template;
     }
 
     /**
@@ -439,27 +542,5 @@ class BR_Beautiful_Rescues {
      */
     public function enqueue_admin_scripts() {
         // Enqueue admin scripts here
-    }
-
-    private function load_dependencies() {
-        require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-beautiful-rescues-loader.php';
-        require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-beautiful-rescues-i18n.php';
-        require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-beautiful-rescues-admin.php';
-        require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-beautiful-rescues-public.php';
-        require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-donation-post-type.php';
-        require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-donation-verification.php';
-        require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-donation-review.php';
-
-        $this->loader = new Beautiful_Rescues_Loader();
-    }
-
-    private function define_admin_hooks() {
-        $plugin_admin = new Beautiful_Rescues_Admin($this->get_plugin_name(), $this->get_version());
-        $donation_post_type = new BR_Donation_Post_Type();
-        $donation_verification = new BR_Donation_Verification();
-        $donation_review = new BR_Donation_Review();
-
-        $this->loader->add_action('admin_enqueue_scripts', $plugin_admin, 'enqueue_styles');
-        $this->loader->add_action('admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts');
     }
 } 

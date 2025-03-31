@@ -54,15 +54,16 @@ while (have_posts()) :
                 <div class="checkout-column">
                     <?php 
                     // Get the donation verification instance and render the form
-                    global $beautiful_rescues;
                     if (class_exists('BR_Donation_Verification')) {
                         $verification = new BR_Donation_Verification();
                         echo $verification->render_verification_form(array(
                             'source' => 'checkout',
-                            'show_image_upload' => false // We already have selected images
+                            'show_image_upload' => false, // We already have selected images
+                            'form_id' => 'checkout-verification-form',
+                            'submit_button_text' => __('Complete Checkout', 'beautiful-rescues')
                         ));
                     } else {
-                        _e('Donation verification form is not available.', 'beautiful-rescues');
+                        _e('Verification form is not available.', 'beautiful-rescues');
                     }
                     ?>
                 </div>

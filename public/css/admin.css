@@ -1,22 +1,22 @@
-.donation-details-meta-box {
+.verification-details-meta-box {
     padding: 15px;
 }
 
-.donation-field {
+.verification-field {
     margin-bottom: 20px;
 }
 
-.donation-field label {
+.verification-field label {
     display: block;
     font-weight: 600;
     margin-bottom: 5px;
 }
 
-.donation-field input[type="text"],
-.donation-field input[type="email"],
-.donation-field input[type="tel"],
-.donation-field textarea,
-.donation-field select {
+.verification-field input[type="text"],
+.verification-field input[type="email"],
+.verification-field input[type="tel"],
+.verification-field textarea,
+.verification-field select {
     width: 100%;
     padding: 8px;
     border: 1px solid #ddd;
@@ -24,7 +24,7 @@
     background-color: #f9f9f9;
 }
 
-.donation-field textarea {
+.verification-field textarea {
     min-height: 100px;
     resize: vertical;
 }

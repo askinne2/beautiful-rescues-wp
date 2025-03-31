@@ -10,29 +10,7 @@ class BR_Settings {
         $this->debug = BR_Debug::get_instance();
         $this->options = get_option('beautiful_rescues_options', array());
         
-        add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('admin_init', array($this, 'register_settings'));
-    }
-
-    public function add_admin_menu() {
-        add_menu_page(
-            'Beautiful Rescues',
-            'Beautiful Rescues',
-            'manage_options',
-            'beautiful-rescues',
-            array($this, 'render_settings_page'),
-            'dashicons-heart',
-            30
-        );
-
-        add_submenu_page(
-            'beautiful-rescues',
-            'Settings',
-            'Settings',
-            'manage_options',
-            'beautiful-rescues',
-            array($this, 'render_settings_page')
-        );
     }
 
     public function register_settings() {
@@ -111,20 +89,29 @@ class BR_Settings {
         );
     }
 
+    /**
+     * Render settings form without wrap div
+     */
+    public function render_settings_form() {
+        ?>
+        <form action="options.php" method="post">
+            <?php
+            settings_fields('beautiful_rescues_options');
+            do_settings_sections('beautiful-rescues');
+            submit_button();
+            ?>
+        </form>
+        <?php
+    }
+
+    /**
+     * Render complete settings page with wrap div
+     */
     public function render_settings_page() {
-        if (!current_user_can('manage_options')) {
-            return;
-        }
         ?>
         <div class="wrap">
             <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
-            <form action="options.php" method="post">
-                <?php
-                settings_fields('beautiful_rescues_options');
-                do_settings_sections('beautiful-rescues');
-                submit_button('Save Settings');
-                ?>
-            </form>
+            <?php $this->render_settings_form(); ?>
         </div>
         <?php
     }

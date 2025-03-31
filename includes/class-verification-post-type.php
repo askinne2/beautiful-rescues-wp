@@ -1,8 +1,8 @@
 <?php
 /**
- * Donation Post Type Class
+ * Verification Post Type Class
  */
-class BR_Donation_Post_Type {
+class BR_Verification_Post_Type {
     public function __construct() {
         // Add meta boxes and other hooks
         add_action('add_meta_boxes', array($this, 'add_meta_boxes'));
@@ -10,22 +10,25 @@ class BR_Donation_Post_Type {
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_styles'));
         
         // Add columns to admin list view
-        add_filter('manage_donation_verification_posts_columns', array($this, 'add_donation_columns'));
-        add_action('manage_donation_verification_posts_custom_column', array($this, 'display_donation_columns'), 10, 2);
-        add_filter('manage_edit-donation_verification_sortable_columns', array($this, 'make_donation_columns_sortable'));
+        add_filter('manage_verification_posts_columns', array($this, 'add_verification_columns'));
+        add_action('manage_verification_posts_custom_column', array($this, 'display_verification_columns'), 10, 2);
+        add_filter('manage_edit-verification_sortable_columns', array($this, 'make_verification_columns_sortable'));
     }
 
     /**
-     * Add custom columns to donation list
+     * Add custom columns to verification list
      */
-    public function add_donation_columns($columns) {
+    public function add_verification_columns($columns) {
         $new_columns = array();
         foreach($columns as $key => $value) {
             if($key === 'title') {
                 $new_columns[$key] = $value;
-                $new_columns['donor_name'] = __('Donor Name', 'beautiful-rescues');
-                $new_columns['donor_email'] = __('Email', 'beautiful-rescues');
+                $new_columns['first_name'] = __('First Name', 'beautiful-rescues');
+                $new_columns['last_name'] = __('Last Name', 'beautiful-rescues');
+                $new_columns['email'] = __('Email', 'beautiful-rescues');
+                $new_columns['phone'] = __('Phone', 'beautiful-rescues');
                 $new_columns['submission_date'] = __('Submission Date', 'beautiful-rescues');
+                $new_columns['status'] = __('Status', 'beautiful-rescues');
             } else {
                 $new_columns[$key] = $value;
             }
@@ -36,18 +39,25 @@ class BR_Donation_Post_Type {
     /**
      * Display custom column content
      */
-    public function display_donation_columns($column, $post_id) {
+    public function display_verification_columns($column, $post_id) {
         switch($column) {
-            case 'donor_name':
-                $first_name = get_post_meta($post_id, '_donor_first_name', true);
-                $last_name = get_post_meta($post_id, '_donor_last_name', true);
-                echo esc_html($first_name . ' ' . $last_name);
+            case 'first_name':
+                echo esc_html(get_post_meta($post_id, '_first_name', true));
                 break;
-            case 'donor_email':
-                echo esc_html(get_post_meta($post_id, '_donor_email', true));
+            case 'last_name':
+                echo esc_html(get_post_meta($post_id, '_last_name', true));
+                break;
+            case 'email':
+                echo esc_html(get_post_meta($post_id, '_email', true));
+                break;
+            case 'phone':
+                echo esc_html(get_post_meta($post_id, '_phone', true));
                 break;
             case 'submission_date':
                 echo esc_html(get_post_meta($post_id, '_submission_date', true));
+                break;
+            case 'status':
+                echo esc_html(get_post_meta($post_id, '_status', true));
                 break;
         }
     }
@@ -55,81 +65,83 @@ class BR_Donation_Post_Type {
     /**
      * Make custom columns sortable
      */
-    public function make_donation_columns_sortable($columns) {
-        $columns['donor_name'] = 'donor_name';
+    public function make_verification_columns_sortable($columns) {
+        $columns['first_name'] = 'first_name';
+        $columns['last_name'] = 'last_name';
+        $columns['email'] = 'email';
+        $columns['phone'] = 'phone';
         $columns['submission_date'] = 'submission_date';
+        $columns['status'] = 'status';
         return $columns;
     }
 
     /**
-     * Add meta boxes for donation details
+     * Add meta boxes for verification details
      */
     public function add_meta_boxes() {
         add_meta_box(
-            'donation_details',
-            __('Donation Details', 'beautiful-rescues'),
-            array($this, 'render_donation_details_meta_box'),
-            'donation_verification',
+            'verification_details',
+            __('Verification Details', 'beautiful-rescues'),
+            array($this, 'render_verification_details_meta_box'),
+            'verification',
             'normal',
             'high'
         );
     }
 
     /**
-     * Render donation details meta box
+     * Render verification details meta box
      */
-    public function render_donation_details_meta_box($post) {
-        // Get the verification file path
+    public function render_verification_details_meta_box($post) {
+        // Get meta fields
+        $first_name = get_post_meta($post->ID, '_first_name', true);
+        $last_name = get_post_meta($post->ID, '_last_name', true);
+        $email = get_post_meta($post->ID, '_email', true);
+        $phone = get_post_meta($post->ID, '_phone', true);
+        $message = get_post_meta($post->ID, '_message', true);
         $verification_file = get_post_meta($post->ID, '_verification_file', true);
         $verification_file_path = get_post_meta($post->ID, '_verification_file_path', true);
-        
-        // Get other meta fields
-        $donor_first_name = get_post_meta($post->ID, '_donor_first_name', true);
-        $donor_last_name = get_post_meta($post->ID, '_donor_last_name', true);
-        $donor_email = get_post_meta($post->ID, '_donor_email', true);
-        $donor_phone = get_post_meta($post->ID, '_donor_phone', true);
-        $donor_message = get_post_meta($post->ID, '_donor_message', true);
         $selected_images = get_post_meta($post->ID, '_selected_images', true);
-        $verification_status = get_post_meta($post->ID, '_verification_status', true);
+        $status = get_post_meta($post->ID, '_status', true);
         $submission_date = get_post_meta($post->ID, '_submission_date', true);
         
         // Add nonce for security
-        wp_nonce_field('donation_details_meta_box', 'donation_details_meta_box_nonce');
+        wp_nonce_field('verification_details_meta_box', 'verification_details_meta_box_nonce');
         ?>
-        <div class="donation-details-meta-box">
-            <div class="donation-field">
-                <label for="donor_first_name">First Name:</label>
-                <input type="text" id="donor_first_name" name="_donor_first_name" value="<?php echo esc_attr($donor_first_name); ?>" readonly>
+        <div class="verification-details-meta-box">
+            <div class="verification-field">
+                <label for="first_name">First Name:</label>
+                <input type="text" id="first_name" name="_first_name" value="<?php echo esc_attr($first_name); ?>" readonly>
             </div>
             
-            <div class="donation-field">
-                <label for="donor_last_name">Last Name:</label>
-                <input type="text" id="donor_last_name" name="_donor_last_name" value="<?php echo esc_attr($donor_last_name); ?>" readonly>
+            <div class="verification-field">
+                <label for="last_name">Last Name:</label>
+                <input type="text" id="last_name" name="_last_name" value="<?php echo esc_attr($last_name); ?>" readonly>
             </div>
             
-            <div class="donation-field">
-                <label for="donor_email">Email:</label>
-                <input type="email" id="donor_email" name="_donor_email" value="<?php echo esc_attr($donor_email); ?>" readonly>
+            <div class="verification-field">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="_email" value="<?php echo esc_attr($email); ?>" readonly>
             </div>
             
-            <div class="donation-field">
-                <label for="donor_phone">Phone:</label>
-                <input type="tel" id="donor_phone" name="_donor_phone" value="<?php echo esc_attr($donor_phone); ?>" readonly>
+            <div class="verification-field">
+                <label for="phone">Phone:</label>
+                <input type="tel" id="phone" name="_phone" value="<?php echo esc_attr($phone); ?>" readonly>
             </div>
             
-            <div class="donation-field">
-                <label for="donor_message">Message:</label>
-                <textarea id="donor_message" name="_donor_message" readonly><?php echo esc_textarea($donor_message); ?></textarea>
+            <div class="verification-field">
+                <label for="message">Message:</label>
+                <textarea id="message" name="_message" readonly><?php echo esc_textarea($message); ?></textarea>
             </div>
             
-            <div class="donation-field">
+            <div class="verification-field">
                 <label>Verification File:</label>
                 <?php if ($verification_file && $verification_file_path): ?>
                     <div class="verification-file-container">
                         <?php
                         $file_extension = strtolower(pathinfo($verification_file, PATHINFO_EXTENSION));
                         $is_image = in_array($file_extension, ['jpg', 'jpeg', 'png', 'gif']);
-                        $file_url = wp_upload_dir()['baseurl'] . '/donation-verifications/' . $verification_file;
+                        $file_url = wp_upload_dir()['baseurl'] . '/verifications/' . $verification_file;
                         ?>
                         
                         <div class="file-preview">
@@ -157,22 +169,22 @@ class BR_Donation_Post_Type {
                 <?php endif; ?>
             </div>
             
-            <div class="donation-field">
-                <label for="verification_status">Verification Status:</label>
-                <select id="verification_status" name="_verification_status">
-                    <option value="pending" <?php selected($verification_status, 'pending'); ?>>Pending</option>
-                    <option value="verified" <?php selected($verification_status, 'verified'); ?>>Verified</option>
-                    <option value="rejected" <?php selected($verification_status, 'rejected'); ?>>Rejected</option>
+            <div class="verification-field">
+                <label for="status">Status:</label>
+                <select id="status" name="_status">
+                    <option value="pending" <?php selected($status, 'pending'); ?>>Pending</option>
+                    <option value="verified" <?php selected($status, 'verified'); ?>>Verified</option>
+                    <option value="rejected" <?php selected($status, 'rejected'); ?>>Rejected</option>
                 </select>
             </div>
             
-            <div class="donation-field">
+            <div class="verification-field">
                 <label>Submission Date:</label>
                 <input type="text" value="<?php echo esc_attr($submission_date); ?>" readonly>
             </div>
             
             <?php if (!empty($selected_images)): ?>
-                <div class="donation-field">
+                <div class="verification-field">
                     <label>Selected Images:</label>
                     <div class="selected-images-grid">
                         <?php 
@@ -206,11 +218,11 @@ class BR_Donation_Post_Type {
      * Save meta box data
      */
     public function save_meta_boxes($post_id) {
-        if (!isset($_POST['donation_details_meta_box_nonce'])) {
+        if (!isset($_POST['verification_details_meta_box_nonce'])) {
             return;
         }
 
-        if (!wp_verify_nonce($_POST['donation_details_meta_box_nonce'], 'donation_details_meta_box')) {
+        if (!wp_verify_nonce($_POST['verification_details_meta_box_nonce'], 'verification_details_meta_box')) {
             return;
         }
 
@@ -222,9 +234,9 @@ class BR_Donation_Post_Type {
             return;
         }
 
-        // Only allow updating the verification status
-        if (isset($_POST['_verification_status'])) {
-            update_post_meta($post_id, '_verification_status', sanitize_text_field($_POST['_verification_status']));
+        // Only allow updating the status
+        if (isset($_POST['_status'])) {
+            update_post_meta($post_id, '_status', sanitize_text_field($_POST['_status']));
         }
     }
 
@@ -237,7 +249,7 @@ class BR_Donation_Post_Type {
         }
 
         $screen = get_current_screen();
-        if ('donation_verification' !== $screen->post_type) {
+        if ('verification' !== $screen->post_type) {
             return;
         }
 
