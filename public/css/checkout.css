@@ -7,12 +7,11 @@
 .checkout-container {
     background: #fff;
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     overflow: hidden;
 }
 
 .checkout-header {
-    text-align: center;
+    text-align: left;
     margin-bottom: 2rem;
 }
 
@@ -72,7 +71,7 @@
     object-fit: cover;
 }
 
-.selected-image-remove {
+.remove-image {
     position: absolute;
     top: 0.5rem;
     right: 0.5rem;
@@ -93,7 +92,7 @@
     z-index: 1;
 }
 
-.selected-image-remove:hover {
+.remove-image:hover {
     background: rgba(0,0,0,0.7);
 }
 
@@ -239,4 +238,43 @@
     .checkout-column {
         padding: 1.5rem;
     }
+}
+
+.no-images {
+    text-align: center;
+    padding: 2rem;
+    color: #666;
+    font-size: 1.1rem;
+    background: #f8f8f8;
+    border-radius: 8px;
+    margin: 0;
+}
+
+.empty-cart-notice {
+    text-align: center;
+    padding: 2rem;
+    background: #f8f8f8;
+    border-radius: 8px;
+    margin: 0;
+}
+
+.empty-cart-notice p {
+    font-size: 1.1rem;
+    color: #666;
+    margin-bottom: 1.5rem;
+}
+
+.empty-cart-notice .button {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    background: #4CAF50;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+}
+
+.empty-cart-notice .button:hover {
+    background: #45a049;
 } 

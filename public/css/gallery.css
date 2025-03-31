@@ -67,10 +67,8 @@
 
 .gallery-item {
     position: relative;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    transition: transform 0.2s ease;
+    margin-bottom: 2rem;
+    transition: all 0.3s ease;
 }
 
 .gallery-item:hover {
@@ -113,23 +111,36 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0,0,0,0.5);
+    background-color: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    transition: all 0.3s ease;
     display: flex;
-    flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 1rem;
-    opacity: 0;
-    transition: opacity 0.2s ease;
 }
 
 .gallery-item:hover .gallery-item-overlay {
     opacity: 1;
 }
 
+/* Reset overlay on non-selected items */
+.gallery-item:not(.selected) .gallery-item-overlay {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* Ensure transition works both ways */
+.gallery-item .gallery-item-overlay {
+    transition: background-color 0.3s ease, opacity 0.3s ease;
+}
+
 .gallery-item.selected .gallery-item-overlay {
-    background: rgba(76, 175, 80, 0.5);
+    background-color: rgba(76, 175, 80, 0.3);
     opacity: 1;
+}
+
+.gallery-item.selected .select-button {
+    background-color: #4CAF50;
+    color: white;
 }
 
 .gallery-item-actions {

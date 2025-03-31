@@ -1,31 +1,89 @@
 (function($) {
     'use strict';
 
-    const cart = $('.beautiful-rescues-cart');
-    if (!cart.length) return;
-
     // Initialize variables
-    const cartButton = cart.find('.cart-button');
-    const cartCount = cart.find('.cart-count');
+    const cart = $('.beautiful-rescues-cart');
+    const cartButton = $('.cart-button'); // Changed to search globally
+    const cartCount = $('.cart-count'); // Changed to search globally
     let selectedImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]');
+
+    // Create toast container if not exists
+    if (!$('.toast-container').length) {
+        $('body').append('<div class="toast-container"></div>');
+    }
+
+    // Function to show toast notification
+    function showToast(message, duration = 3000) {
+        const toast = $(`
+            <div class="toast">
+                <span class="toast-message">${message}</span>
+                <button class="toast-close">&times;</button>
+            </div>
+        `);
+        
+        $('.toast-container').append(toast);
+
+        // Handle manual close
+        toast.find('.toast-close').on('click', () => {
+            toast.addClass('hiding');
+            setTimeout(() => toast.remove(), 300);
+        });
+
+        // Auto dismiss
+        setTimeout(() => {
+            toast.addClass('hiding');
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
+    }
 
     // Function to update cart count
     function updateCartCount() {
-        const selectedImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]');
+        const selectedImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]')
+            .map(img => ({
+                ...img,
+                url: img.url.replace('http://', 'https://')
+            }));
         const count = selectedImages.length;
-        cartCount.text(count);
-        cartButton.toggleClass('hidden', count === 0);
+        console.log('Updating cart count:', {
+            count: count,
+            selectedImages: selectedImages,
+            localStorage: localStorage.getItem('beautifulRescuesSelectedImages')
+        });
+
+        // Update localStorage with HTTPS URLs
+        localStorage.setItem('beautifulRescuesSelectedImages', JSON.stringify(selectedImages));
+
+        // Update all cart count elements on the page
+        $('.cart-count').text(count);
+        $('.cart-button').toggleClass('hidden', count === 0);
     }
 
     // Function to open donation modal
     function openDonationModal() {
+        // Refresh selected images from localStorage and ensure HTTPS URLs
+        selectedImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]')
+            .map(img => ({
+                ...img,
+                url: img.url.replace('http://', 'https://')
+            }));
+        console.log('Opening donation modal:', {
+            selectedImages: selectedImages,
+            count: selectedImages.length,
+            cartButtonHidden: cartButton.hasClass('hidden')
+        });
+
+        // Update localStorage with HTTPS URLs
+        localStorage.setItem('beautifulRescuesSelectedImages', JSON.stringify(selectedImages));
+
         // Check if there are any selected images
         if (!selectedImages.length) {
-            alert(beautifulRescuesCart.i18n.noImagesSelected);
+            console.log('No items in cart, showing toast notification');
+            showToast('You have no items in your cart');
             return;
         }
 
         // Redirect to checkout page
+        console.log('Redirecting to checkout:', beautifulRescuesCart.checkoutUrl);
         window.location.href = beautifulRescuesCart.checkoutUrl;
     }
 
@@ -82,12 +140,23 @@
     // Listen for storage changes from other tabs/windows
     $(window).on('storage', function(e) {
         if (e.originalEvent.key === 'beautifulRescuesSelectedImages') {
+            console.log('Storage changed in another window:', {
+                oldValue: e.originalEvent.oldValue,
+                newValue: e.originalEvent.newValue
+            });
             updateCartCount();
         }
     });
 
     // Listen for custom event from gallery
     $(document).on('beautifulRescuesSelectionChanged', function() {
+        console.log('Selection changed event received');
+        selectedImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]');
+        console.log('Cart state after selection change:', {
+            selectedImages: selectedImages,
+            count: selectedImages.length,
+            localStorage: localStorage.getItem('beautifulRescuesSelectedImages')
+        });
         updateCartCount();
     });
 

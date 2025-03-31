@@ -53,6 +53,7 @@ class BR_Cloudinary_Integration {
      */
     private function init_cloudinary() {
         if (!$this->check_cloudinary_sdk()) {
+            $this->debug->log('Cloudinary SDK not available');
             return false;
         }
 
@@ -67,9 +68,11 @@ class BR_Cloudinary_Integration {
             
             // Test the configuration
             $test_result = $this->cloudinary->adminApi()->ping();
+            $this->debug->log('Cloudinary initialized successfully');
             
             return true;
         } catch (Exception $e) {
+            $this->debug->log('Cloudinary initialization failed: ' . $e->getMessage());
             return false;
         }
     }
@@ -83,6 +86,7 @@ class BR_Cloudinary_Integration {
         }
 
         if (!$this->init_cloudinary()) {
+            $this->debug->log('Failed to initialize Cloudinary for upload');
             return $upload;
         }
 
@@ -93,16 +97,14 @@ class BR_Cloudinary_Integration {
                 'resource_type' => 'auto'
             ]);
 
-            // Debug log the upload result
-            error_log('Cloudinary upload result: ' . print_r($result, true));
+            $this->debug->log('Cloudinary upload successful', $result);
 
-            // Return the public_id for storage
             return array(
                 'public_id' => $result['public_id'],
                 'url' => $result['secure_url']
             );
         } catch (Exception $e) {
-            error_log('Cloudinary upload error: ' . $e->getMessage());
+            $this->debug->log('Cloudinary upload error: ' . $e->getMessage());
             return false;
         }
     }
@@ -114,6 +116,7 @@ class BR_Cloudinary_Integration {
         $public_id = get_post_meta($attachment_id, '_cloudinary_public_id', true);
         
         if (!$public_id) {
+            $this->debug->log('No Cloudinary public_id found for attachment: ' . $attachment_id);
             return $url;
         }
 
@@ -157,8 +160,15 @@ class BR_Cloudinary_Integration {
         // Join transformations with forward slashes
         $transformations_string = implode('/', $transformations);
 
-        // Return the complete URL
-        return "https://res.cloudinary.com/{$this->cloud_name}/image/upload/{$transformations_string}/{$public_id}";
+        $url = "https://res.cloudinary.com/{$this->cloud_name}/image/upload/{$transformations_string}/{$public_id}";
+        $this->debug->log('Generated Cloudinary URL', array(
+            'public_id' => $public_id,
+            'options' => $options,
+            'transformations' => $transformations,
+            'url' => $url
+        ));
+
+        return $url;
     }
 
     /**
@@ -173,6 +183,7 @@ class BR_Cloudinary_Integration {
      */
     public function get_images_from_folder($folder = '', $limit = 20, $sort = 'random', $page = 1) {
         if (!$this->init_cloudinary()) {
+            $this->debug->log('Cloudinary not initialized', null, 'error');
             return [];
         }
 
@@ -181,27 +192,38 @@ class BR_Cloudinary_Integration {
         $cached_result = get_transient($transient_key);
         
         if ($cached_result !== false) {
+            $this->debug->log('Using cached results', [
+                'folder' => $folder,
+                'count' => count($cached_result)
+            ]);
             return $cached_result;
         }
 
         try {
             $searchApi = $this->cloudinary->searchApi();
             
+            // Start with base expression
             $search_expression = 'resource_type:image';
             
             if ($folder) {
-                // If it's a cat folder, use the Cats/ prefix (capital C)
+                // If it's a cat folder, use the Cats/ prefix
                 if (in_array($folder, $this->cat_folders)) {
-                    $search_expression .= " AND asset_folder=Cats/{$folder}";
+                    // Add wildcard to include subfolders
+                    $search_expression .= " AND folder:Cats/{$folder}/*";
+                    $this->debug->log('Searching specific cat folder', [
+                        'folder' => $folder,
+                        'expression' => $search_expression
+                    ]);
                 } else if ($folder === 'Cats') {
-                    // If the folder is just "Cats", search in all cat folders
-                    $search_expression .= " AND asset_folder:Cats/*";
+                    $search_expression .= " AND folder:Cats/*";
+                    $this->debug->log('Searching all cat folders', [
+                        'expression' => $search_expression
+                    ]);
                 } else {
-                    $search_expression .= " AND asset_folder={$folder}";
+                    $search_expression .= " AND folder:{$folder}/*";
                 }
             } else {
-                // If no folder specified, search in all cat folders using wildcard
-                $search_expression .= " AND asset_folder:Cats/*";
+                $search_expression .= " AND folder:Cats/*";
             }
 
             // Add sorting
@@ -217,9 +239,15 @@ class BR_Cloudinary_Integration {
                     break;
                 case 'random':
                 default:
-                    // Random sorting is handled after fetching results
+                    // Random sorting handled after fetching
                     break;
             }
+
+            $this->debug->log('Executing Cloudinary search', [
+                'expression' => $search_expression,
+                'max_results' => $folder ? $limit : 200,
+                'folder' => $folder
+            ]);
 
             // Calculate pagination
             $offset = ($page - 1) * $limit;
@@ -230,6 +258,12 @@ class BR_Cloudinary_Integration {
             $result = $searchApi->expression($search_expression)
                 ->maxResults($max_results)
                 ->execute();
+
+            $this->debug->log('Search results received', [
+                'total_count' => count($result['resources'] ?? []),
+                'expression_used' => $search_expression,
+                'folder' => $folder
+            ]);
 
             $resources = $result['resources'] ?? [];
 
@@ -244,6 +278,8 @@ class BR_Cloudinary_Integration {
                     }
                     $images_by_category[$category][] = $resource;
                 }
+
+                $this->debug->log('Images grouped by category', array_map('count', $images_by_category));
 
                 // Get random images from each category
                 $categories = array_keys($images_by_category);
@@ -270,8 +306,18 @@ class BR_Cloudinary_Integration {
             // Cache the results for 5 minutes
             set_transient($transient_key, $resources, 5 * MINUTE_IN_SECONDS);
 
+            $this->debug->log('Returning search results', [
+                'count' => count($resources),
+                'folder' => $folder,
+                'sort' => $sort
+            ]);
+
             return $resources;
         } catch (Exception $e) {
+            $this->debug->log('Cloudinary search error', [
+                'error' => $e->getMessage(),
+                'folder' => $folder
+            ], 'error');
             return [];
         }
     }

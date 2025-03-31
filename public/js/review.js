@@ -1,158 +1,96 @@
-(function($) {
-    'use strict';
-
-    const reviewContainer = $('.donation-review-container');
-    if (!reviewContainer.length) return;
-
-    // Initialize variables
-    const donationList = $('.donation-list');
-    const statusFilter = $('#status-filter');
-    const searchFilter = $('#search-filter');
-    const detailsPanel = $('.donation-details-panel');
-    const detailsContent = $('.donation-details-content');
-    const verifyButton = $('.verify-button');
-    const rejectButton = $('.reject-button');
-    const donorInfo = $('.donor-info');
-    const verificationFile = $('.verification-file');
-    const selectedImages = $('.selected-images');
-
+jQuery(document).ready(function($) {
+    // State management
     let currentPage = 1;
-    let isLoading = false;
-    let currentDonationId = null;
+    let totalPages = 1;
+    let selectedDonationId = null;
+    let currentStatus = 'all';
+    let searchTerm = '';
 
-    // Initialize review functionality
-    function initReview() {
+    // Cache DOM elements
+    const donationList = $('.donation-list');
+    const detailsPanel = $('.donation-details-panel');
+    const statusFilter = $('.status-filter');
+    const searchFilter = $('.search-filter');
+    const pagination = $('.pagination');
+
+    // Initialize the page
+    loadDonations();
+
+    // Event Listeners
+    statusFilter.on('change', function() {
+        currentStatus = $(this).val();
+        currentPage = 1;
         loadDonations();
-        bindEventHandlers();
-    }
+    });
 
-    // Bind event handlers
-    function bindEventHandlers() {
-        // Status filter change
-        statusFilter.on('change', function() {
-            currentPage = 1;
+    searchFilter.on('input', debounce(function() {
+        searchTerm = $(this).val();
+        currentPage = 1;
+        loadDonations();
+    }, 500));
+
+    // Handle donation item click
+    donationList.on('click', '.donation-item', function() {
+        const donationId = $(this).data('id');
+        $('.donation-item').removeClass('selected');
+        $(this).addClass('selected');
+        loadDonationDetails(donationId);
+    });
+
+    // Handle pagination clicks
+    pagination.on('click', '.page-button', function() {
+        if (!$(this).hasClass('active')) {
+            currentPage = parseInt($(this).data('page'));
             loadDonations();
-        });
+        }
+    });
 
-        // Search filter input (debounced)
-        let searchTimeout;
-        searchFilter.on('input', function() {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                currentPage = 1;
-                loadDonations();
-            }, 500);
-        });
+    // Handle verification actions
+    detailsPanel.on('click', '.verify-button', function() {
+        if (selectedDonationId) {
+            updateDonationStatus(selectedDonationId, 'verified');
+        }
+    });
 
-        // Verify/Reject buttons
-        verifyButton.on('click', function() {
-            updateDonationStatus('verified');
-        });
+    detailsPanel.on('click', '.reject-button', function() {
+        if (selectedDonationId) {
+            updateDonationStatus(selectedDonationId, 'rejected');
+        }
+    });
 
-        rejectButton.on('click', function() {
-            updateDonationStatus('rejected');
-        });
-    }
-
-    // Load donations via AJAX
+    // Load donations with filters and pagination
     function loadDonations() {
-        if (isLoading) return;
-        isLoading = true;
-
         $.ajax({
             url: beautifulRescuesReview.ajaxurl,
             type: 'POST',
             data: {
                 action: 'load_donations',
                 nonce: beautifulRescuesReview.nonce,
-                status: statusFilter.val(),
-                search: searchFilter.val(),
                 page: currentPage,
-                per_page: 20
+                status: currentStatus,
+                search: searchTerm
+            },
+            beforeSend: function() {
+                donationList.html('<div class="loading">Loading donations...</div>');
             },
             success: function(response) {
-                console.log('Donations loaded:', response);
                 if (response.success) {
-                    renderDonations(response.data);
-                    updatePagination(response.data);
+                    renderDonationList(response.data.donations);
+                    totalPages = response.data.total_pages;
+                    renderPagination();
+                } else {
+                    donationList.html('<div class="error">Error loading donations: ' + response.data + '</div>');
                 }
-                isLoading = false;
             },
             error: function() {
-                isLoading = false;
+                donationList.html('<div class="error">Failed to load donations. Please try again.</div>');
             }
         });
     }
 
-    // Render donations list
-    function renderDonations(data) {
-        console.log('Rendering donations:', data.donations);
-        donationList.empty();
-
-        data.donations.forEach(function(donation) {
-            console.log('Processing donation:', donation);
-            const donationHtml = `
-                <div class="donation-item status-${donation.status || 'pending'}" data-id="${donation.id}">
-                    <div class="donation-info">
-                        <h3>${donation.title}</h3>
-                        <p class="donor-name">${donation.donor_name || 'Unknown'}</p>
-                        <p class="donation-date">${donation.date}</p>
-                        <p class="donation-status">Status: ${donation.status || 'pending'}</p>
-                    </div>
-                    <div class="donation-actions">
-                        <button class="review-button">Review</button>
-                    </div>
-                </div>
-            `;
-            donationList.append(donationHtml);
-        });
-
-        // Bind review button clicks
-        $('.review-button').on('click', function() {
-            const donationId = $(this).closest('.donation-item').data('id');
-            openDonationDetails(donationId);
-        });
-    }
-
-    // Update pagination
-    function updatePagination(data) {
-        const totalPages = Math.ceil(data.total / data.per_page);
-        const pagination = $('.pagination');
-        pagination.empty();
-
-        if (totalPages > 1) {
-            // Previous button
-            if (currentPage > 1) {
-                pagination.append(`<button class="page-button" data-page="${currentPage - 1}">Previous</button>`);
-            }
-
-            // Page numbers
-            for (let i = 1; i <= totalPages; i++) {
-                pagination.append(`
-                    <button class="page-button ${i === currentPage ? 'active' : ''}" data-page="${i}">${i}</button>
-                `);
-            }
-
-            // Next button
-            if (currentPage < totalPages) {
-                pagination.append(`<button class="page-button" data-page="${currentPage + 1}">Next</button>`);
-            }
-
-            // Bind pagination clicks
-            pagination.find('.page-button').on('click', function() {
-                currentPage = parseInt($(this).data('page'));
-                loadDonations();
-            });
-        }
-    }
-
-    // Function to open donation details
-    function openDonationDetails(donationId) {
-        currentDonationId = donationId;
-        
-        // Update selected state in the list
-        $('.donation-item').removeClass('selected');
-        $(`.donation-item[data-id="${donationId}"]`).addClass('selected');
+    // Load donation details
+    function loadDonationDetails(donationId) {
+        selectedDonationId = donationId;
         
         $.ajax({
             url: beautifulRescuesReview.ajaxurl,
@@ -162,89 +100,219 @@
                 nonce: beautifulRescuesReview.nonce,
                 donation_id: donationId
             },
+            beforeSend: function() {
+                detailsPanel.removeClass('empty').html('<div class="loading">Loading details...</div>');
+            },
             success: function(response) {
                 if (response.success) {
-                    const donation = response.data;
-                    
-                    // Update donor info
-                    $('.donor-name').text(donation.donor_name);
-                    $('.donor-email').text(donation.email);
-                    $('.donor-phone').text(donation.phone);
-                    $('.donor-message').text(donation.message || 'No message provided');
-
-                    // Update verification file preview
-                    if (donation.verification_file_url) {
-                        const fileUrl = donation.verification_file_url;
-                        const fileExtension = donation.verification_file.split('.').pop().toLowerCase();
-                        
-                        if (fileExtension === 'pdf') {
-                            verificationFile.html(`
-                                <div class="pdf-preview">
-                                    <iframe src="${fileUrl}" width="100%" height="500px"></iframe>
-                                </div>
-                            `);
-                        } else {
-                            verificationFile.html(`
-                                <div class="image-preview">
-                                    <img src="${fileUrl}" alt="Verification file">
-                                </div>
-                            `);
-                        }
-                    } else {
-                        verificationFile.html('<p>No verification file provided</p>');
+                    // Ensure response data has HTTPS URLs
+                    if (response.data.selected_images) {
+                        response.data.selected_images = response.data.selected_images.map(image => ({
+                            ...image,
+                            url: image.url.replace('http://', 'https://')
+                        }));
                     }
-
-                    // Update selected images
-                    if (donation.selected_images && donation.selected_images.length > 0) {
-                        const imagesHtml = donation.selected_images.map(image => `
-                            <div class="selected-image">
-                                <img src="${image.url}" alt="${image.filename || 'Selected image'}">
-                                <div class="image-info">
-                                    <p>${image.filename || 'Image'}</p>
-                                    <a href="${image.url}" target="_blank" class="download-link">Download</a>
-                                </div>
-                            </div>
-                        `).join('');
-                        selectedImages.html(imagesHtml);
-                    } else {
-                        selectedImages.html('<p>No images selected</p>');
+                    if (response.data.verification_file && response.data.verification_file.url) {
+                        response.data.verification_file.url = response.data.verification_file.url.replace('http://', 'https://');
                     }
-
-                    // Show details panel
-                    detailsPanel.removeClass('empty');
-                    detailsContent.addClass('active');
+                    renderDonationDetails(response.data);
+                } else {
+                    detailsPanel.html('<div class="error">Error loading details: ' + response.data + '</div>');
                 }
+            },
+            error: function() {
+                detailsPanel.html('<div class="error">Failed to load donation details. Please try again.</div>');
             }
         });
     }
 
     // Update donation status
-    function updateDonationStatus(status) {
-        if (!currentDonationId) return;
-
+    function updateDonationStatus(donationId, status) {
         $.ajax({
             url: beautifulRescuesReview.ajaxurl,
             type: 'POST',
             data: {
                 action: 'update_donation_status',
                 nonce: beautifulRescuesReview.nonce,
-                donation_id: currentDonationId,
+                donation_id: donationId,
                 status: status
+            },
+            beforeSend: function() {
+                detailsPanel.find('.donation-actions').html('<div class="loading">Updating status...</div>');
             },
             success: function(response) {
                 if (response.success) {
                     loadDonations();
-                    detailsPanel.addClass('empty');
-                    detailsContent.removeClass('active');
-                    currentDonationId = null;
+                    loadDonationDetails(donationId);
+                } else {
+                    detailsPanel.find('.donation-actions').html(
+                        '<div class="error">Error updating status: ' + response.data + '</div>' +
+                        '<div class="donation-actions">' +
+                        '<button class="verify-button">Verify</button>' +
+                        '<button class="reject-button">Reject</button>' +
+                        '</div>'
+                    );
                 }
+            },
+            error: function() {
+                detailsPanel.find('.donation-actions').html(
+                    '<div class="error">Failed to update status. Please try again.</div>' +
+                    '<div class="donation-actions">' +
+                    '<button class="verify-button">Verify</button>' +
+                    '<button class="reject-button">Reject</button>' +
+                    '</div>'
+                );
             }
         });
     }
 
-    // Initialize on document ready
-    $(document).ready(function() {
-        initReview();
+    // Render donation list
+    function renderDonationList(donations) {
+        if (!donations.length) {
+            donationList.html('<div class="no-results">No donations found.</div>');
+            return;
+        }
+
+        const html = donations.map(donation => `
+            <div class="donation-item status-${donation.status}" data-id="${donation.id}">
+                <div class="donation-info">
+                    <strong>${donation.donor_name}</strong>
+                    <div>Submitted: ${donation.date} ${donation.time}</div>
+                    <div>Status: ${donation.status}</div>
+                </div>
+                <div class="quick-actions">
+                    <button class="verify-button" data-id="${donation.id}">Verify</button>
+                    <button class="reject-button" data-id="${donation.id}">Reject</button>
+                </div>
+            </div>
+        `).join('');
+
+        donationList.html(html);
+    }
+
+    // Add event listeners for quick actions
+    donationList.on('click', '.quick-actions button', function(e) {
+        e.stopPropagation(); // Prevent triggering the donation item click
+        const donationId = $(this).data('id');
+        const status = $(this).hasClass('verify-button') ? 'verified' : 'rejected';
+        updateDonationStatus(donationId, status);
     });
 
-})(jQuery); 
+    // Render donation details
+    function renderDonationDetails(donation) {
+        const html = `
+            <div class="donor-info">
+                <h3>Donor Information</h3>
+                <div class="donor-details">
+                    <p><strong>Name:</strong> ${donation.donor_name}</p>
+                    <p><strong>Email:</strong> ${donation.donor_email}</p>
+                    <p><strong>Phone:</strong> ${donation.donor_phone}</p>
+                    <p><strong>Date:</strong> ${donation.date}</p>
+                    <p><strong>Status:</strong> ${donation.status}</p>
+                    ${donation.donor_message ? `<p><strong>Message:</strong> ${donation.donor_message}</p>` : ''}
+                </div>
+            </div>
+
+            <div class="verification-file">
+                <h3>Verification Document</h3>
+                ${renderVerificationFile(donation.verification_file)}
+            </div>
+
+            <div class="selected-images">
+                <h3>Selected Images</h3>
+                <div class="images-grid">
+                    ${renderSelectedImages(donation.selected_images)}
+                </div>
+            </div>
+
+            <div class="donation-actions">
+                <button class="verify-button">Verify</button>
+                <button class="reject-button">Reject</button>
+            </div>
+        `;
+
+        detailsPanel.removeClass('empty').html(html);
+    }
+
+    // Render verification file preview
+    function renderVerificationFile(file) {
+        if (!file) return '<p>No verification file uploaded</p>';
+
+        const extension = file.url.split('.').pop().toLowerCase();
+        
+        if (extension === 'pdf') {
+            return `<iframe src="${file.url}" width="100%" height="600"></iframe>`;
+        } else if (['jpg', 'jpeg', 'png', 'gif'].includes(extension)) {
+            return `<img src="${file.url}" alt="Verification document">`;
+        } else {
+            return `<p><a href="${file.url}" target="_blank">Download verification file</a></p>`;
+        }
+    }
+
+    // Render selected images
+    function renderSelectedImages(images) {
+        if (!images || !images.length) {
+            return '<p>No images selected</p>';
+        }
+
+        return images.map(image => `
+            <div class="selected-image">
+                <img src="${image.url}" alt="${image.title}">
+                <div class="image-info">
+                    <p>${image.title}</p>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Render pagination
+    function renderPagination() {
+        if (totalPages <= 1) {
+            pagination.empty();
+            return;
+        }
+
+        let html = '';
+        
+        // Previous button
+        if (currentPage > 1) {
+            html += `<button class="page-button" data-page="${currentPage - 1}">Previous</button>`;
+        }
+
+        // Page numbers
+        for (let i = 1; i <= totalPages; i++) {
+            if (
+                i === 1 || // First page
+                i === totalPages || // Last page
+                (i >= currentPage - 2 && i <= currentPage + 2) // Pages around current
+            ) {
+                html += `<button class="page-button${i === currentPage ? ' active' : ''}" data-page="${i}">${i}</button>`;
+            } else if (
+                (i === currentPage - 3 && currentPage > 4) ||
+                (i === currentPage + 3 && currentPage < totalPages - 3)
+            ) {
+                html += '<span class="page-ellipsis">...</span>';
+            }
+        }
+
+        // Next button
+        if (currentPage < totalPages) {
+            html += `<button class="page-button" data-page="${currentPage + 1}">Next</button>`;
+        }
+
+        pagination.html(html);
+    }
+
+    // Utility function for debouncing
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+}); 

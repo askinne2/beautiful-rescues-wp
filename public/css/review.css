@@ -1,13 +1,16 @@
 .donation-review-container {
     display: flex;
     gap: 2rem;
-    margin: 2rem 0;
+    padding: 2rem;
+    max-width: 1600px;
+    margin: 0 auto;
 }
 
 /* Left Panel - Donation List */
 .donation-list-panel {
     flex: 1;
-    min-width: 0;
+    min-width: 300px;
+    max-width: 500px;
     background: #fff;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -15,7 +18,7 @@
 }
 
 .donation-review-header {
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
 }
 
 .donation-review-header h1 {
@@ -27,51 +30,61 @@
 .review-filters {
     display: flex;
     gap: 1rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
 }
 
-.status-filter {
-    width: 200px;
+.status-filter,
+.search-filter {
     padding: 0.5rem;
     border: 1px solid #ddd;
     border-radius: 4px;
-    font-size: 0.9rem;
-    background-color: #fff;
 }
 
 .search-filter {
-    flex: 1;
-    padding: 0.5rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 0.9rem;
-    min-width: 250px;
+    flex-grow: 1;
 }
 
 .donation-list {
-    max-height: calc(100vh - 250px);
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
 }
 
 .donation-item {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem;
-    border: 1px solid #eee;
-    border-radius: 4px;
-    margin-bottom: 1rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
 }
 
 .donation-item:hover {
-    background: #f9f9f9;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .donation-item.selected {
-    border-color: #0073aa;
-    background: #f0f6fc;
+    border-color: #007cba;
+    background: #f0f7ff;
+}
+
+.donation-item.status-pending {
+    border-left: 4px solid #e7a33e;
+}
+
+.donation-item.status-verified {
+    border-left: 4px solid #46b450;
+}
+
+.donation-item.status-rejected {
+    border-left: 4px solid #dc3232;
+}
+
+.donation-info {
+    flex: 1;
 }
 
 .donation-info h3 {
@@ -129,30 +142,22 @@
 
 /* Right Panel - Donation Details */
 .donation-details-panel {
-    flex: 1;
-    min-width: 0;
+    flex: 2;
     background: #fff;
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    padding: 1.5rem;
+    padding: 2rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     position: relative;
 }
 
 .donation-details-panel.empty {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #666;
-    font-style: italic;
-}
-
-.donation-details-content {
     display: none;
-    height: 100%;
 }
 
-.donation-details-content.active {
-    display: block;
+.donor-info,
+.verification-file,
+.selected-images {
+    margin-bottom: 2rem;
 }
 
 .donor-details {
@@ -170,190 +175,36 @@
 
 .donor-details p {
     margin: 0.5rem 0;
-    font-size: 0.95rem;
 }
 
-.verification-file {
-    margin-bottom: 2rem;
-}
-
-.pdf-preview,
-.image-preview {
+.verification-file img,
+.verification-file iframe {
+    max-width: 100%;
     border: 1px solid #ddd;
     border-radius: 4px;
-    overflow: hidden;
-}
-
-.pdf-preview iframe {
-    border: none;
 }
 
 .selected-images {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 1rem;
-    margin-bottom: 2rem;
 }
 
 .selected-image {
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    overflow: hidden;
+    position: relative;
 }
 
 .selected-image img {
     width: 100%;
-    height: 150px;
+    height: 200px;
     object-fit: cover;
+    border-radius: 4px;
 }
 
 .image-info {
     padding: 0.5rem;
-}
-
-.image-info p {
-    margin: 0 0 0.5rem;
-    font-size: 0.9rem;
-    word-break: break-all;
-}
-
-.download-link {
-    display: inline-block;
-    color: #0073aa;
-    text-decoration: none;
-}
-
-.download-link:hover {
-    text-decoration: underline;
-}
-
-.donation-actions {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.verify-button,
-.reject-button {
-    flex: 1;
-    padding: 0.75rem;
-    border: none;
-    border-radius: 4px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.verify-button {
-    background: #28a745;
-    color: #fff;
-}
-
-.verify-button:hover {
-    background: #218838;
-}
-
-.reject-button {
-    background: #dc3545;
-    color: #fff;
-}
-
-.reject-button:hover {
-    background: #c82333;
-}
-
-/* Filters */
-.filters {
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-}
-
-.filter-group {
-    flex: 1;
-}
-
-.filter-group label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-}
-
-.filter-group select,
-.filter-group input {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-}
-
-/* Details Panel */
-.donor-info {
-    margin-bottom: 2rem;
-}
-
-.donor-info h3 {
-    margin: 0 0 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid #eee;
-}
-
-.donor-info p {
-    margin: 0 0 0.5rem;
-}
-
-.donor-info strong {
-    display: inline-block;
-    width: 100px;
-}
-
-.pdf-preview {
-    background: #f8f9fa;
-    padding: 1rem;
-    border-radius: 6px;
-}
-
-.pdf-preview iframe {
-    width: 100%;
-    height: 500px;
-    border: none;
-    border-radius: 4px;
-}
-
-.image-preview {
-    background: #f8f9fa;
-    padding: 1rem;
-    border-radius: 6px;
-}
-
-.image-preview img {
-    max-width: 100%;
-    height: auto;
-    border-radius: 4px;
-}
-
-.selected-images {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-top: 1.5rem;
-}
-
-.selected-image {
-    background: #f8f9fa;
-    padding: 1rem;
-    border-radius: 6px;
-    text-align: center;
-}
-
-.selected-image img {
-    max-width: 100%;
-    height: auto;
-    border-radius: 4px;
-    margin-bottom: 0.5rem;
-}
-
-.image-info {
-    font-size: 0.9rem;
+    background: rgba(255,255,255,0.9);
+    border-radius: 0 0 4px 4px;
 }
 
 .image-info p {
@@ -377,84 +228,97 @@
 }
 
 .donation-actions {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
     display: flex;
-    gap: 1rem;
-    margin-top: 2rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid #ddd;
+    gap: 0.5rem;
 }
 
 .verify-button,
 .reject-button {
-    padding: 0.75rem 1.5rem;
+    padding: 0.5rem 1rem;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 1rem;
-    font-weight: 500;
-    transition: all 0.2s ease;
+    font-weight: bold;
+    transition: all 0.3s ease;
 }
 
 .verify-button {
-    background: #28a745;
-    color: #fff;
-}
-
-.verify-button:hover {
-    background: #218838;
+    background: #46b450;
+    color: white;
 }
 
 .reject-button {
-    background: #dc3545;
-    color: #fff;
+    background: #dc3232;
+    color: white;
+}
+
+.verify-button:hover {
+    background: #3d9c46;
 }
 
 .reject-button:hover {
-    background: #c82333;
+    background: #c72c2c;
+}
+
+.quick-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: 1rem;
+}
+
+.quick-actions button {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid #ddd;
+}
+
+.quick-actions .verify-button {
+    background-color: #4CAF50;
+    color: white;
+    border-color: #45a049;
+}
+
+.quick-actions .reject-button {
+    background-color: #f44336;
+    color: white;
+    border-color: #da190b;
 }
 
 /* Pagination */
 .pagination {
     display: flex;
-    justify-content: center;
     gap: 0.5rem;
-    margin-top: 1.5rem;
+    margin-top: 2rem;
+    justify-content: center;
 }
 
 .page-button {
     padding: 0.5rem 1rem;
-    background: #fff;
     border: 1px solid #ddd;
     border-radius: 4px;
+    background: #fff;
     cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.page-button:hover {
-    background: #f8f9fa;
 }
 
 .page-button.active {
-    background: #2271b1;
-    color: #fff;
-    border-color: #2271b1;
+    background: #007cba;
+    color: white;
+    border-color: #007cba;
 }
 
 /* Responsive Design */
-@media (max-width: 1200px) {
+@media (max-width: 1024px) {
     .donation-review-container {
         flex-direction: column;
     }
 
-    .donation-list-panel,
-    .donation-details-panel {
-        flex: none;
-        width: 100%;
-    }
-
-    .donation-details-panel {
-        position: static;
-        max-height: none;
+    .donation-list-panel {
+        max-width: none;
     }
 }
 

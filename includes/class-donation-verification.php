@@ -44,42 +44,42 @@ class BR_Donation_Verification {
         ?>
         <form id="donation-verification-form" class="beautiful-rescues-verification-form" method="post" enctype="multipart/form-data">
             <div class="form-group">
-                <label for="first_name"><?php _e('First Name', 'beautiful-rescues'); ?> *</label>
-                <input type="text" id="first_name" name="first_name" required>
+                <label for="_donor_first_name"><?php _e('First Name', 'beautiful-rescues'); ?> *</label>
+                <input type="text" id="_donor_first_name" name="_donor_first_name" required>
             </div>
             
             <div class="form-group">
-                <label for="last_name"><?php _e('Last Name', 'beautiful-rescues'); ?> *</label>
-                <input type="text" id="last_name" name="last_name" required>
+                <label for="_donor_last_name"><?php _e('Last Name', 'beautiful-rescues'); ?> *</label>
+                <input type="text" id="_donor_last_name" name="_donor_last_name" required>
             </div>
             
             <div class="form-group">
-                <label for="email"><?php _e('Email Address', 'beautiful-rescues'); ?> *</label>
-                <input type="email" id="email" name="email" required>
+                <label for="_donor_email"><?php _e('Email Address', 'beautiful-rescues'); ?> *</label>
+                <input type="email" id="_donor_email" name="_donor_email" required>
             </div>
             
             <div class="form-group">
-                <label for="phone"><?php _e('Phone Number', 'beautiful-rescues'); ?> *</label>
-                <input type="tel" id="phone" name="phone" required>
+                <label for="_donor_phone"><?php _e('Phone Number', 'beautiful-rescues'); ?> *</label>
+                <input type="tel" id="_donor_phone" name="_donor_phone" required>
             </div>
             
             <?php if ($atts['show_image_upload']) : ?>
             <div class="form-group">
-                <label for="selected_images"><?php _e('Select Images', 'beautiful-rescues'); ?> *</label>
+                <label for="_selected_images"><?php _e('Select Images', 'beautiful-rescues'); ?> *</label>
                 <div id="image-preview" class="image-preview"></div>
-                <input type="file" id="selected_images" name="selected_images" accept="image/*,application/pdf" multiple required>
+                <input type="file" id="_selected_images" name="_selected_images" accept="image/*,application/pdf" multiple required>
             </div>
             <?php endif; ?>
             
             <div class="form-group">
-                <label for="donation_verification"><?php _e('Donation Verification (Image or PDF)', 'beautiful-rescues'); ?> *</label>
-                <input type="file" id="donation_verification" name="donation_verification" accept="image/*,.pdf" required>
+                <label for="_verification_file"><?php _e('Donation Verification (Image or PDF)', 'beautiful-rescues'); ?> *</label>
+                <input type="file" id="_verification_file" name="_verification_file" accept="image/*,.pdf" required>
                 <p class="help-text"><?php _e('Upload a screenshot or PDF of your donation receipt', 'beautiful-rescues'); ?></p>
             </div>
 
             <div class="form-group">
-                <label for="message"><?php _e('Message (Optional)', 'beautiful-rescues'); ?></label>
-                <textarea id="message" name="message" rows="4"></textarea>
+                <label for="_donor_message"><?php _e('Message (Optional)', 'beautiful-rescues'); ?></label>
+                <textarea id="_donor_message" name="_donor_message" rows="4"></textarea>
             </div>
             
             <input type="hidden" name="action" value="submit_donation_verification">
@@ -118,7 +118,7 @@ class BR_Donation_Verification {
             error_log('Files received: ' . print_r($_FILES, true));
 
             // Validate required fields with correct field names
-            $required_fields = array('first_name', 'last_name', 'email', 'phone');
+            $required_fields = array('_donor_first_name', '_donor_last_name', '_donor_email', '_donor_phone');
             foreach ($required_fields as $field) {
                 if (empty($_POST[$field])) {
                     throw new Exception("Missing required field: {$field}");
@@ -126,21 +126,21 @@ class BR_Donation_Verification {
             }
 
             // Validate email
-            if (!is_email($_POST['email'])) {
+            if (!is_email($_POST['_donor_email'])) {
                 throw new Exception('Invalid email address');
             }
 
             // Validate phone (basic validation)
-            if (!preg_match('/^\+?[1-9]\d{1,14}$/', $_POST['phone'])) {
+            if (!preg_match('/^\+?[1-9]\d{1,14}$/', $_POST['_donor_phone'])) {
                 throw new Exception('Invalid phone number format');
             }
 
             // Handle file upload with correct field name
-            if (empty($_FILES['donation_verification'])) {
+            if (empty($_FILES['_verification_file'])) {
                 throw new Exception('Please upload your donation verification');
             }
 
-            $file = $_FILES['donation_verification'];
+            $file = $_FILES['_verification_file'];
             $options = get_option('beautiful_rescues_options', array());
             $max_file_size = isset($options['max_file_size']) ? (int)$options['max_file_size'] : 5; // Default to 5MB
             $max_file_size_bytes = $max_file_size * 1024 * 1024; // Convert MB to bytes
@@ -177,7 +177,7 @@ class BR_Donation_Verification {
             $verification_url = $upload_dir['baseurl'] . '/donation-verifications/' . $unique_filename;
 
             // Get selected images
-            $selected_images = json_decode(stripslashes($_POST['selected_images']), true);
+            $selected_images = json_decode(stripslashes($_POST['_selected_images']), true);
             error_log('Selected images from form: ' . print_r($selected_images, true));
             
             if (empty($selected_images)) {
@@ -211,11 +211,11 @@ class BR_Donation_Verification {
 
             // Store verification data with correct field names and underscore prefix
             $meta_fields = array(
-                '_donor_first_name' => sanitize_text_field($_POST['first_name']),
-                '_donor_last_name' => sanitize_text_field($_POST['last_name']),
-                '_donor_email' => sanitize_email($_POST['email']),
-                '_donor_phone' => sanitize_text_field($_POST['phone']),
-                '_donor_message' => sanitize_textarea_field($_POST['message'] ?? ''),
+                '_donor_first_name' => sanitize_text_field($_POST['_donor_first_name']),
+                '_donor_last_name' => sanitize_text_field($_POST['_donor_last_name']),
+                '_donor_email' => sanitize_email($_POST['_donor_email']),
+                '_donor_phone' => sanitize_text_field($_POST['_donor_phone']),
+                '_donor_message' => sanitize_textarea_field($_POST['_donor_message'] ?? ''),
                 '_selected_images' => $selected_images,
                 '_verification_file' => $unique_filename,
                 '_verification_file_url' => $verification_url,

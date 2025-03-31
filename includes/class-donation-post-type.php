@@ -89,15 +89,15 @@ class BR_Donation_Post_Type {
     public function display_donation_columns($column, $post_id) {
         switch($column) {
             case 'donor_name':
-                $first_name = get_post_meta($post_id, 'donor_first_name', true);
-                $last_name = get_post_meta($post_id, 'donor_last_name', true);
+                $first_name = get_post_meta($post_id, '_donor_first_name', true);
+                $last_name = get_post_meta($post_id, '_donor_last_name', true);
                 echo esc_html($first_name . ' ' . $last_name);
                 break;
             case 'donor_email':
-                echo esc_html(get_post_meta($post_id, 'donor_email', true));
+                echo esc_html(get_post_meta($post_id, '_donor_email', true));
                 break;
             case 'submission_date':
-                echo esc_html(get_post_meta($post_id, 'submission_date', true));
+                echo esc_html(get_post_meta($post_id, '_submission_date', true));
                 break;
         }
     }
@@ -147,18 +147,18 @@ class BR_Donation_Post_Type {
      */
     public function render_donation_details_meta_box($post) {
         // Get the verification file path
-        $verification_file = get_post_meta($post->ID, 'verification_file', true);
-        $verification_file_path = get_post_meta($post->ID, 'verification_file_path', true);
+        $verification_file = get_post_meta($post->ID, '_verification_file', true);
+        $verification_file_path = get_post_meta($post->ID, '_verification_file_path', true);
         
         // Get other meta fields
-        $donor_first_name = get_post_meta($post->ID, 'donor_first_name', true);
-        $donor_last_name = get_post_meta($post->ID, 'donor_last_name', true);
-        $donor_email = get_post_meta($post->ID, 'donor_email', true);
-        $donor_phone = get_post_meta($post->ID, 'donor_phone', true);
-        $donor_message = get_post_meta($post->ID, 'donor_message', true);
-        $selected_images = get_post_meta($post->ID, 'selected_images', true);
-        $verification_status = get_post_meta($post->ID, 'verification_status', true);
-        $submission_date = get_post_meta($post->ID, 'submission_date', true);
+        $donor_first_name = get_post_meta($post->ID, '_donor_first_name', true);
+        $donor_last_name = get_post_meta($post->ID, '_donor_last_name', true);
+        $donor_email = get_post_meta($post->ID, '_donor_email', true);
+        $donor_phone = get_post_meta($post->ID, '_donor_phone', true);
+        $donor_message = get_post_meta($post->ID, '_donor_message', true);
+        $selected_images = get_post_meta($post->ID, '_selected_images', true);
+        $verification_status = get_post_meta($post->ID, '_verification_status', true);
+        $submission_date = get_post_meta($post->ID, '_submission_date', true);
         
         // Add nonce for security
         wp_nonce_field('donation_details_meta_box', 'donation_details_meta_box_nonce');
@@ -166,27 +166,27 @@ class BR_Donation_Post_Type {
         <div class="donation-details-meta-box">
             <div class="donation-field">
                 <label for="donor_first_name">First Name:</label>
-                <input type="text" id="donor_first_name" name="donor_first_name" value="<?php echo esc_attr($donor_first_name); ?>" readonly>
+                <input type="text" id="donor_first_name" name="_donor_first_name" value="<?php echo esc_attr($donor_first_name); ?>" readonly>
             </div>
             
             <div class="donation-field">
                 <label for="donor_last_name">Last Name:</label>
-                <input type="text" id="donor_last_name" name="donor_last_name" value="<?php echo esc_attr($donor_last_name); ?>" readonly>
+                <input type="text" id="donor_last_name" name="_donor_last_name" value="<?php echo esc_attr($donor_last_name); ?>" readonly>
             </div>
             
             <div class="donation-field">
                 <label for="donor_email">Email:</label>
-                <input type="email" id="donor_email" name="donor_email" value="<?php echo esc_attr($donor_email); ?>" readonly>
+                <input type="email" id="donor_email" name="_donor_email" value="<?php echo esc_attr($donor_email); ?>" readonly>
             </div>
             
             <div class="donation-field">
                 <label for="donor_phone">Phone:</label>
-                <input type="tel" id="donor_phone" name="donor_phone" value="<?php echo esc_attr($donor_phone); ?>" readonly>
+                <input type="tel" id="donor_phone" name="_donor_phone" value="<?php echo esc_attr($donor_phone); ?>" readonly>
             </div>
             
             <div class="donation-field">
                 <label for="donor_message">Message:</label>
-                <textarea id="donor_message" name="donor_message" readonly><?php echo esc_textarea($donor_message); ?></textarea>
+                <textarea id="donor_message" name="_donor_message" readonly><?php echo esc_textarea($donor_message); ?></textarea>
             </div>
             
             <div class="donation-field">
@@ -226,7 +226,7 @@ class BR_Donation_Post_Type {
             
             <div class="donation-field">
                 <label for="verification_status">Verification Status:</label>
-                <select id="verification_status" name="verification_status">
+                <select id="verification_status" name="_verification_status">
                     <option value="pending" <?php selected($verification_status, 'pending'); ?>>Pending</option>
                     <option value="verified" <?php selected($verification_status, 'verified'); ?>>Verified</option>
                     <option value="rejected" <?php selected($verification_status, 'rejected'); ?>>Rejected</option>
@@ -290,8 +290,8 @@ class BR_Donation_Post_Type {
         }
 
         // Only allow updating the verification status
-        if (isset($_POST['verification_status'])) {
-            update_post_meta($post_id, 'verification_status', sanitize_text_field($_POST['verification_status']));
+        if (isset($_POST['_verification_status'])) {
+            update_post_meta($post_id, '_verification_status', sanitize_text_field($_POST['_verification_status']));
         }
     }
 

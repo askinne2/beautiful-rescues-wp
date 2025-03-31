@@ -97,6 +97,39 @@ class BR_Beautiful_Rescues {
             // Update existing checkout page to use our template
             update_post_meta($checkout_page->ID, '_wp_page_template', 'checkout.php');
         }
+
+        // Create review page if it doesn't exist
+        $review_page = get_page_by_path('review-donations');
+        if (!$review_page) {
+            $page_data = array(
+                'post_title'    => 'Review Donations',
+                'post_name'     => 'review-donations',
+                'post_status'   => 'publish',
+                'post_type'     => 'page',
+                'post_content'  => '[beautiful_rescues_donation_review]',
+                'post_author'   => get_current_user_id()
+            );
+            
+            $page_id = wp_insert_post($page_data);
+            if ($page_id) {
+                update_post_meta($page_id, '_wp_page_template', 'review.php');
+                $debug->log('Review page created', array(
+                    'page_id' => $page_id,
+                    'template' => 'review.php'
+                ));
+            }
+        } else {
+            // Update existing review page
+            wp_update_post(array(
+                'ID' => $review_page->ID,
+                'post_content' => '[beautiful_rescues_donation_review]'
+            ));
+            update_post_meta($review_page->ID, '_wp_page_template', 'review.php');
+            $debug->log('Review page updated', array(
+                'page_id' => $review_page->ID,
+                'template' => 'review.php'
+            ));
+        }
         
         flush_rewrite_rules();
     }
@@ -406,5 +439,27 @@ class BR_Beautiful_Rescues {
      */
     public function enqueue_admin_scripts() {
         // Enqueue admin scripts here
+    }
+
+    private function load_dependencies() {
+        require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-beautiful-rescues-loader.php';
+        require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-beautiful-rescues-i18n.php';
+        require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-beautiful-rescues-admin.php';
+        require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-beautiful-rescues-public.php';
+        require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-donation-post-type.php';
+        require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-donation-verification.php';
+        require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-donation-review.php';
+
+        $this->loader = new Beautiful_Rescues_Loader();
+    }
+
+    private function define_admin_hooks() {
+        $plugin_admin = new Beautiful_Rescues_Admin($this->get_plugin_name(), $this->get_version());
+        $donation_post_type = new BR_Donation_Post_Type();
+        $donation_verification = new BR_Donation_Verification();
+        $donation_review = new BR_Donation_Review();
+
+        $this->loader->add_action('admin_enqueue_scripts', $plugin_admin, 'enqueue_styles');
+        $this->loader->add_action('admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts');
     }
 } 

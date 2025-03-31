@@ -1,88 +1,81 @@
-(function($) {
-    'use strict';
+jQuery(document).ready(function($) {
+    const $form = $('#donation-verification-form');
+    const $messages = $('#form-messages');
+    const $fileInput = $('#_selected_images');
+    const $preview = $('#image-preview');
 
-    // Initialize form handling
-    function initVerificationForm() {
-        const $form = $('#donation-verification-form');
-        const $imagePreview = $('#image-preview');
-        const $fileInput = $('#selected_images');
-        const $messages = $('#form-messages');
+    // Handle form submission
+    $form.on('submit', function(e) {
+        e.preventDefault();
 
-        // Handle file selection
-        $fileInput.on('change', function() {
-            $imagePreview.empty();
-            const files = this.files;
+        const formData = new FormData(this);
+        const selectedImages = [];
 
+        // Add selected images to form data
+        if ($fileInput.length) {
+            const files = $fileInput[0].files;
             for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-                if (file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const $img = $('<img>').attr('src', e.target.result);
-                        $imagePreview.append($img);
-                    };
-                    reader.readAsDataURL(file);
-                } else if (file.type === 'application/pdf') {
-                    const $pdfIcon = $('<div class="pdf-preview">PDF Document</div>');
-                    $imagePreview.append($pdfIcon);
-                }
+                selectedImages.push({
+                    name: files[i].name,
+                    type: files[i].type,
+                    size: files[i].size
+                });
             }
-        });
+            formData.append('_selected_images', JSON.stringify(selectedImages));
+        }
 
-        // Handle form submission
-        $form.on('submit', function(e) {
-            e.preventDefault();
-            $messages.empty();
-
-            // Create FormData object
-            const formData = new FormData(this);
-            
-            // Add selected images if they exist
-            const selectedImages = localStorage.getItem('selectedImages');
-            if (selectedImages) {
-                formData.append('selected_images', selectedImages);
-            }
-
-            // Show loading state
-            const submitButton = $form.find('button[type="submit"]');
-            const originalText = submitButton.text();
-            submitButton.prop('disabled', true).text('Processing...');
-
-            // Submit form via AJAX
-            $.ajax({
-                url: beautifulRescuesVerification.ajaxurl,
-                type: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function(response) {
-                    if (response.success) {
-                        $messages.html('<div class="success-message">' + response.message + '</div>');
-                        $form[0].reset();
-                        $imagePreview.empty();
-                        if (response.redirect) {
-                            setTimeout(function() {
-                                window.location.href = response.redirect;
-                            }, 2000);
-                        }
-                    } else {
-                        $messages.html('<div class="error-message">' + response.message + '</div>');
+        $.ajax({
+            url: beautifulRescuesVerification.ajaxurl,
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            beforeSend: function() {
+                $form.find('button[type="submit"]').prop('disabled', true);
+                $messages.html('<div class="loading">Submitting verification...</div>');
+            },
+            success: function(response) {
+                if (response.success) {
+                    $messages.html('<div class="success">' + response.data.message + '</div>');
+                    $form[0].reset();
+                    $preview.empty();
+                    if (response.data.redirect) {
+                        window.location.href = response.data.redirect;
                     }
-                },
-                error: function(xhr, status, error) {
-                    $messages.html('<div class="error-message">An error occurred. Please try again.</div>');
-                    console.error('Form submission error:', error);
-                },
-                complete: function() {
-                    submitButton.prop('disabled', false).text(originalText);
+                } else {
+                    $messages.html('<div class="error">' + response.data + '</div>');
                 }
-            });
+            },
+            error: function() {
+                $messages.html('<div class="error">An error occurred. Please try again.</div>');
+            },
+            complete: function() {
+                $form.find('button[type="submit"]').prop('disabled', false);
+            }
         });
-    }
-
-    // Initialize on document ready
-    $(document).ready(function() {
-        initVerificationForm();
     });
 
-})(jQuery); 
+    // Handle file input change for preview
+    $fileInput.on('change', function() {
+        $preview.empty(); // Clear existing previews
+        const files = this.files;
+
+        if (files.length === 0) {
+            // If no files are selected (cleared), just return after emptying the preview
+            return;
+        }
+
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                const $img = $('<img>').attr('src', e.target.result);
+                const $wrapper = $('<div>').addClass('preview-item').append($img);
+                $preview.append($wrapper);
+            };
+
+            reader.readAsDataURL(file);
+        }
+    });
+}); 

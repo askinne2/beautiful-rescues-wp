@@ -37,11 +37,7 @@ $debug = BR_Debug::get_instance();
 
 // Check template file existence
 $template_file = BR_PLUGIN_DIR . 'templates/checkout.php';
-if (file_exists($template_file)) {
-    $debug->log('Checkout template file found', array(
-        'template_path' => $template_file
-    ), 'info');
-} else {
+if (!file_exists($template_file)) {
     $debug->log('Checkout template file not found', array(
         'template_path' => $template_file
     ), 'error');
@@ -80,11 +76,6 @@ require_once BR_PLUGIN_DIR . 'includes/class-cart-shortcode.php';
 // Initialize the plugin
 function beautiful_rescues_init() {
     $debug = BR_Debug::get_instance();
-    $debug->log('Initializing Beautiful Rescues plugin from main file', array(
-        'hook' => current_filter(),
-        'backtrace' => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 5)
-    ), 'info');
-    
     BR_Beautiful_Rescues::get_instance();
 }
 

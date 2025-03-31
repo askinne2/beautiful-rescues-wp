@@ -44,10 +44,21 @@
             const publicId = $item.data('public-id');
             const imageUrl = $item.find('img').data('url');
 
+            console.log('Image selection clicked:', {
+                publicId: publicId,
+                imageUrl: imageUrl,
+                wasSelected: $item.hasClass('selected'),
+                currentSelections: selectedImages
+            });
+
             if ($item.hasClass('selected')) {
                 $item.removeClass('selected');
                 selectedImages = selectedImages.filter(img => img.id !== publicId);
                 $(this).text('Select');
+                console.log('Image removed from selection:', {
+                    publicId: publicId,
+                    remainingSelections: selectedImages
+                });
             } else {
                 $item.addClass('selected');
                 selectedImages.push({
@@ -55,6 +66,10 @@
                     url: imageUrl
                 });
                 $(this).text('Selected');
+                console.log('Image added to selection:', {
+                    publicId: publicId,
+                    currentSelections: selectedImages
+                });
             }
 
             updateSelectedImagesStorage();
@@ -479,8 +494,21 @@
     // Function to update selected images count
     function updateSelectedCount() {
         const count = selectedImages.length;
+        console.log('Updating selected count:', {
+            count: count,
+            selectedImages: selectedImages,
+            localStorage: JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]')
+        });
+
         $('.selected-count').text(count);
         $('.clear-selection-button').toggle(count > 0);
+        
+        // Reset selection state if count is 0
+        if (count === 0) {
+            $('.gallery-item').removeClass('selected');
+            $('.select-button').text('Select');
+            console.log('Reset all selection states - count is 0');
+        }
         
         // Trigger custom event for cart
         $(document).trigger('beautifulRescuesSelectionChanged');
@@ -491,15 +519,35 @@
         selectedImages = [];
         updateSelectedImagesStorage();
         updateSelectedCount();
+        // Reset all gallery items to unselected state
+        $('.gallery-item').removeClass('selected');
         $('.select-button').text('Select');
         updateSelectedImagesPreview();
     });
 
     // Function to update localStorage
     function updateSelectedImagesStorage() {
+        console.log('Updating localStorage:', {
+            selectedImages: selectedImages,
+            previousStorage: JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]')
+        });
+
         localStorage.setItem('beautifulRescuesSelectedImages', JSON.stringify(selectedImages));
+        
+        // Reset selection state if no images
+        if (selectedImages.length === 0) {
+            $('.gallery-item').removeClass('selected');
+            $('.select-button').text('Select');
+            console.log('Reset all selection states - no images in storage');
+        }
+        
         // Trigger custom event for cart
         $(document).trigger('beautifulRescuesSelectionChanged');
+        
+        console.log('Storage updated, current state:', {
+            selectedImages: selectedImages,
+            localStorage: JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]')
+        });
     }
 
     // Initialize on document ready
