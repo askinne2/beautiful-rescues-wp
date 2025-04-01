@@ -74,7 +74,11 @@ class BR_Gallery_Shortcode {
             'max_width' => '1200px',
             'category' => '',
             'sort' => 'newest',
-            'per_page' => '40'
+            'per_page' => '40',
+            'tablet_breakpoint' => '768px',
+            'mobile_breakpoint' => '480px',
+            'tablet_columns' => '2',
+            'mobile_columns' => '2'
         ), $atts);
 
         // Calculate the columns to ensure responsive grid
@@ -89,22 +93,22 @@ class BR_Gallery_Shortcode {
                     gap: {$atts['gutter']} !important;
                 }
                 
-                @media (max-width: 768px) {
+                @media (max-width: {$atts['tablet_breakpoint']}) {
                     .beautiful-rescues-gallery .gallery-grid {
-                        grid-template-columns: repeat(2, 1fr) !important;
+                        grid-template-columns: repeat({$atts['tablet_columns']}, 1fr) !important;
                     }
                 }
                 
-                @media (max-width: 480px) {
+                @media (max-width: {$atts['mobile_breakpoint']}) {
                     .beautiful-rescues-gallery .gallery-grid {
-                        grid-template-columns: 2fr !important;
+                        grid-template-columns: repeat({$atts['mobile_columns']}, 1fr) !important;
                     }
                 }
             </style>
         ";
 
         // Pre-load initial images for immediate display
-        $initial_images = $this->cloudinary->get_images_from_folder($atts['category'], 9, $atts['sort'], 1);
+        $initial_images = $this->cloudinary->get_images_from_folder($atts['category'], intval($atts['per_page']), $atts['sort'], 1);
         $initial_images_html = '';
         
             // Apply transformations to each image
