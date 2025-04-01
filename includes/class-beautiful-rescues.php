@@ -139,6 +139,10 @@ class BR_Beautiful_Rescues {
         $this->register_taxonomies();
         $debug->log('Taxonomies registered', null, 'info');
 
+        // Register shortcodes
+        self::register_shortcodes();
+        $debug->log('Shortcodes registered during init', null, 'info');
+
         // Initialize components
         $this->init_components();
         $debug->log('Components initialized', null, 'info');
@@ -229,7 +233,22 @@ class BR_Beautiful_Rescues {
      * Register shortcodes
      */
     public static function register_shortcodes() {
+        $debug = BR_Debug::get_instance();
+        
+        // Register cart shortcode
         add_shortcode('beautiful_rescues_cart', array('BR_Beautiful_Rescues', 'render_cart_shortcode'));
+        $debug->log('Registered cart shortcode', array(
+            'shortcode' => 'beautiful_rescues_cart',
+            'callback' => array('BR_Beautiful_Rescues', 'render_cart_shortcode')
+        ), 'info');
+        
+        // Create an instance of the gallery shortcode class
+        $gallery_shortcode = new BR_Gallery_Shortcode();
+        add_shortcode('beautiful_rescues_gallery', array($gallery_shortcode, 'render_gallery'));
+        $debug->log('Registered gallery shortcode', array(
+            'shortcode' => 'beautiful_rescues_gallery',
+            'callback' => array($gallery_shortcode, 'render_gallery')
+        ), 'info');
     }
 
     /**
@@ -270,7 +289,6 @@ class BR_Beautiful_Rescues {
      * Enqueue scripts and styles
      */
     public function enqueue_scripts() {
-
         // Enqueue gallery scripts
         wp_enqueue_style(
             'beautiful-rescues-gallery',
@@ -302,6 +320,16 @@ class BR_Beautiful_Rescues {
             BR_VERSION,
             true
         );
+
+        // Add Elementor integration styles if Elementor is active
+        if (defined('ELEMENTOR_VERSION')) {
+            wp_enqueue_style(
+                'beautiful-rescues-elementor',
+                BR_PLUGIN_URL . 'public/css/elementor-integration.css',
+                array('elementor-frontend'),
+                BR_VERSION
+            );
+        }
 
         // Check if we're on the checkout page
         $is_checkout_page = get_page_template_slug() === 'checkout.php';
@@ -818,6 +846,7 @@ class BR_Beautiful_Rescues {
         
         // Initialize gallery shortcode
         new BR_Gallery_Shortcode();
+        $this->debug->log('Initialized gallery shortcode');
         
         // Initialize donation verification
         BR_Donation_Verification::get_instance();

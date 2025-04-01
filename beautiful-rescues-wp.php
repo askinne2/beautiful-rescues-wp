@@ -149,4 +149,16 @@ function beautiful_rescues_check_credentials() {
         </div>
         <?php
     }
+}
+
+// Add Elementor integration styles
+if (defined('ELEMENTOR_VERSION')) {
+    add_action('wp_enqueue_scripts', function() {
+        wp_enqueue_style(
+            'beautiful-rescues-elementor',
+            BR_PLUGIN_URL . 'public/css/elementor-integration.css',
+            array('elementor-frontend'),
+            BR_VERSION
+        );
+    });
 } 

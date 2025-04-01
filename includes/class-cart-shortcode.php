@@ -21,6 +21,16 @@ class BR_Cart_Shortcode {
             BR_VERSION
         );
 
+        // Add Elementor dependency if Elementor is active
+        if (defined('ELEMENTOR_VERSION')) {
+            wp_enqueue_style(
+                'beautiful-rescues-cart',
+                BR_PLUGIN_URL . 'public/css/cart.css',
+                array('elementor-frontend'),
+                BR_VERSION
+            );
+        }
+
         wp_enqueue_script(
             'beautiful-rescues-cart',
             BR_PLUGIN_URL . 'public/js/cart.js',
@@ -70,14 +80,21 @@ class BR_Cart_Shortcode {
     public function render_cart($atts) {
         $atts = shortcode_atts(array(
             'style' => 'default', // default, compact, icon-only
-            'position' => 'right' // left, right, center
+            'position' => 'right', // left, right, center
+            'color' => 'var(--e-global-color-accent)', // Use Elementor's color variable
+            'background' => 'var(--e-global-color-background)', // Use Elementor's background variable
+            'text_color' => 'var(--e-global-color-text)' // Use Elementor's text color variable
         ), $atts);
 
+        // Add Elementor-specific classes if Elementor is active
+        $elementor_classes = defined('ELEMENTOR_VERSION') ? 'elementor-section elementor-section-boxed' : '';
+        
         ob_start();
         ?>
-        <div class="beautiful-rescues-cart" 
+        <div class="beautiful-rescues-cart <?php echo esc_attr($elementor_classes); ?>" 
              data-style="<?php echo esc_attr($atts['style']); ?>"
              data-position="<?php echo esc_attr($atts['position']); ?>">
+            
             <div class="cart-button">
                 <span class="cart-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

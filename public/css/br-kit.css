@@ -1,0 +1,32 @@
+.elementor-kit-40 {
+    --e-global-color-primary: #F0759E;
+    --e-global-color-secondary: #E04B7C;
+    --e-global-color-text: #333333;
+    --e-global-color-accent: #F5A3BE;
+    --e-global-color-ad5de08: #F2F2F2;
+    --e-global-color-0f4c527: #3AB6EA;
+    --e-global-color-5705563: #FFFFFF;
+    --e-global-typography-primary-font-family: "Helvetica";
+    --e-global-typography-primary-font-size: 3.5rem;
+    --e-global-typography-primary-font-weight: 900;
+    --e-global-typography-primary-line-height: 4rem;
+    --e-global-typography-secondary-font-family: "Helvetica";
+    --e-global-typography-secondary-font-size: 3rem;
+    --e-global-typography-secondary-font-weight: 900;
+    --e-global-typography-secondary-line-height: 3.2rem;
+    --e-global-typography-text-font-family: "Helvetica";
+    --e-global-typography-text-font-weight: normal;
+    --e-global-typography-text-line-height: 1.25em;
+    --e-global-typography-accent-font-family: "Helvetica";
+    --e-global-typography-accent-font-weight: 700;
+    --e-global-typography-0a7d31b-font-family: "Helvetica";
+    --e-global-typography-0a7d31b-font-size: 1.5rem;
+    --e-global-typography-0a7d31b-font-weight: 900;
+    --e-global-typography-0a7d31b-line-height: 1.75rem;
+    --e-global-typography-91ef8f6-font-family: "Helvetica";
+    --e-global-typography-91ef8f6-font-size: 0.8rem;
+    --e-global-typography-91ef8f6-font-weight: normal;
+    font-family: "Helvetica", Sans-serif;
+    font-size: 18px;
+    line-height: 22px;
+}

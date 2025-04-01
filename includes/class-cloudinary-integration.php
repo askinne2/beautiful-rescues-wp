@@ -189,9 +189,9 @@ class BR_Cloudinary_Integration {
 
         // Rate limiting
         $transient_key = 'br_gallery_' . md5($folder . $sort . $page);
-        $cached_result = get_transient($transient_key);
+        $cached_result = array(); //get_transient($transient_key);
         
-        if ($cached_result !== false) {
+        if ($cached_result !== false && !empty($cached_result)) {
             $this->debug->log('Using cached results', [
                 'folder' => $folder,
                 'count' => count($cached_result)
