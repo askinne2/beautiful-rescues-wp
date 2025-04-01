@@ -134,7 +134,7 @@ class BR_Donation_Verification {
         }
 
         if (!wp_verify_nonce($_POST['verification_nonce'], 'beautiful_rescues_verification_nonce')) {
-            $debug->log('Security check failed: Invalid nonce', null, 'error');
+            $this->debug->log('Security check failed: Invalid nonce', null, 'error');
             wp_send_json_error(array(
                 'message' => 'Security check failed. Please try again.'
             ));
@@ -145,7 +145,7 @@ class BR_Donation_Verification {
         $required_fields = array('_donor_first_name', '_donor_last_name', '_donor_email', '_donor_phone', '_verification_file');
         foreach ($required_fields as $field) {
             if (empty($_POST[$field]) && empty($_FILES[$field])) {
-                $debug->log("Validation failed: Missing required field: $field", null, 'error');
+                $this->debug->log("Validation failed: Missing required field: $field", null, 'error');
                 wp_send_json_error(array(
                     'message' => 'Please fill in all required fields.'
                 ));
@@ -159,7 +159,7 @@ class BR_Donation_Verification {
         
         if (!file_exists($verification_dir)) {
             if (!wp_mkdir_p($verification_dir)) {
-                $debug->log('Failed to create verification directory', array('path' => $verification_dir), 'error');
+                $this->debug->log('Failed to create verification directory', array('path' => $verification_dir), 'error');
                 wp_send_json_error(array(
                     'message' => 'Failed to create upload directory.'
                 ));
@@ -174,7 +174,7 @@ class BR_Donation_Verification {
         $destination = $verification_dir . '/' . $unique_filename;
 
         if (!move_uploaded_file($file['tmp_name'], $destination)) {
-            $debug->log('Failed to move uploaded file', array('destination' => $destination), 'error');
+            $this->debug->log('Failed to move uploaded file', array('destination' => $destination), 'error');
             wp_send_json_error(array(
                 'message' => 'Failed to save uploaded file.'
             ));
@@ -198,7 +198,7 @@ class BR_Donation_Verification {
 
         $post_id = wp_insert_post($post_data);
         if (is_wp_error($post_id)) {
-            $debug->log('Failed to create verification post', array('error' => $post_id->get_error_message()), 'error');
+            $this->debug->log('Failed to create verification post', array('error' => $post_id->get_error_message()), 'error');
             wp_send_json_error(array(
                 'message' => 'Failed to create verification record.'
             ));
@@ -244,7 +244,7 @@ class BR_Donation_Verification {
         $this->send_admin_notification($post_id);
         $this->send_donor_confirmation($post_id);
 
-        $debug->log('Verification submission successful', array('post_id' => $post_id), 'info');
+        $this->debug->log('Verification submission successful', array('post_id' => $post_id), 'info');
 
         // Return success response
         wp_send_json_success(array(
