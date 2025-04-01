@@ -27,7 +27,16 @@ class BR_Debug {
             $this->current_log_level = $this->log_levels[$env_log_level];
         }
 
+        // Ensure WP_CONTENT_DIR is defined
+        if (!defined('WP_CONTENT_DIR')) {
+            error_log('Beautiful Rescues Debug: WP_CONTENT_DIR is not defined');
+            return;
+        }
+
         $this->log_path = WP_CONTENT_DIR . '/' . $this->log_file;
+        
+        // Test log file access immediately
+        $this->test_log_file();
     }
 
     private function test_log_file() {
@@ -54,11 +63,12 @@ class BR_Debug {
 
             // Test write
             $test_message = sprintf(
-                "[%s] [INFO] Debug system initialized\n",
-                current_time('mysql')
+                "[%s] [INFO] Debug system initialized at %s\n",
+                current_time('mysql'),
+                $this->log_path
             );
             
-            if (error_log($test_message, 3, $this->log_path) === false) {
+            if (file_put_contents($this->log_path, $test_message, FILE_APPEND) === false) {
                 error_log('Beautiful Rescues Debug: Failed to write to log file: ' . $this->log_path);
                 return;
             }
@@ -102,9 +112,11 @@ class BR_Debug {
                 }
             }
 
-            // Log to both WordPress debug log and our custom log file
-            error_log($log_message);
-            if (error_log($log_message, 3, $this->log_path) === false) {
+            // Write to WordPress debug log first
+            error_log('Beautiful Rescues Debug: ' . $log_message);
+
+            // Write to our custom log file
+            if (file_put_contents($this->log_path, $log_message, FILE_APPEND) === false) {
                 error_log('Beautiful Rescues Debug: Failed to write log message to: ' . $this->log_path);
             }
         } catch (Exception $e) {

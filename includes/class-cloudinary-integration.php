@@ -166,7 +166,7 @@ class BR_Cloudinary_Integration {
             'options' => $options,
             'transformations' => $transformations,
             'url' => $url
-        ));
+        ), 'info');
 
         return $url;
     }
@@ -195,7 +195,7 @@ class BR_Cloudinary_Integration {
             $this->debug->log('Using cached results', [
                 'folder' => $folder,
                 'count' => count($cached_result)
-            ]);
+            ], 'info');
             return $cached_result;
         }
 
@@ -213,12 +213,12 @@ class BR_Cloudinary_Integration {
                     $this->debug->log('Searching specific cat folder', [
                         'folder' => $folder,
                         'expression' => $search_expression
-                    ]);
+                    ], 'info');
                 } else if ($folder === 'Cats') {
                     $search_expression .= " AND folder:Cats/*";
                     $this->debug->log('Searching all cat folders', [
                         'expression' => $search_expression
-                    ]);
+                    ], 'info');
                 } else {
                     $search_expression .= " AND folder:{$folder}/*";
                 }
@@ -247,7 +247,7 @@ class BR_Cloudinary_Integration {
                 'expression' => $search_expression,
                 'max_results' => $folder ? $limit : 200,
                 'folder' => $folder
-            ]);
+            ], 'info');
 
             // Calculate pagination
             $offset = ($page - 1) * $limit;
@@ -263,7 +263,7 @@ class BR_Cloudinary_Integration {
                 'total_count' => count($result['resources'] ?? []),
                 'expression_used' => $search_expression,
                 'folder' => $folder
-            ]);
+            ], 'info');
 
             $resources = $result['resources'] ?? [];
 
@@ -279,7 +279,7 @@ class BR_Cloudinary_Integration {
                     $images_by_category[$category][] = $resource;
                 }
 
-                $this->debug->log('Images grouped by category', array_map('count', $images_by_category));
+                $this->debug->log('Images grouped by category', array_map('count', $images_by_category), 'info');
 
                 // Get random images from each category
                 $categories = array_keys($images_by_category);
@@ -310,7 +310,7 @@ class BR_Cloudinary_Integration {
                 'count' => count($resources),
                 'folder' => $folder,
                 'sort' => $sort
-            ]);
+            ], 'info');
 
             return $resources;
         } catch (Exception $e) {
@@ -319,6 +319,61 @@ class BR_Cloudinary_Integration {
                 'folder' => $folder
             ], 'error');
             return [];
+        }
+    }
+
+    /**
+     * Get total count of images in a folder
+     */
+    public function get_total_images_count($folder = 'Cats') {
+        if (!$this->init_cloudinary()) {
+            $this->debug->log('Cloudinary not initialized for counting images', null, 'error');
+            return 0;
+        }
+
+        try {
+            $searchApi = $this->cloudinary->searchApi();
+            
+            // Build search expression
+            $search_expression = 'resource_type:image';
+            
+            if ($folder) {
+                // If it's a cat folder, use the Cats/ prefix
+                if (in_array($folder, $this->cat_folders)) {
+                    $search_expression .= " AND folder:Cats/{$folder}/*";
+                } else if ($folder === 'Cats') {
+                    $search_expression .= " AND folder:Cats/*";
+                } else {
+                    $search_expression .= " AND folder:{$folder}/*";
+                }
+            } else {
+                $search_expression .= " AND folder:Cats/*";
+            }
+
+            $this->debug->log('Counting images with expression', [
+                'expression' => $search_expression,
+                'folder' => $folder
+            ], 'info');
+
+            // Get total count
+            $result = $searchApi->expression($search_expression)
+                ->maxResults(1)
+                ->execute();
+
+            $total_count = $result['total_count'] ?? 0;
+
+            $this->debug->log('Total images count retrieved', [
+                'count' => $total_count,
+                'folder' => $folder
+            ], 'info');
+
+            return $total_count;
+        } catch (Exception $e) {
+            $this->debug->log('Error counting images', [
+                'error' => $e->getMessage(),
+                'folder' => $folder
+            ], 'error');
+            return 0;
         }
     }
 } 

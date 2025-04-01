@@ -3,22 +3,35 @@
  * Donation Verification Class
  */
 class BR_Donation_Verification {
-    public function __construct() {
-        error_log('BR_Donation_Verification class instantiated');
-        
-        // Add AJAX handlers
+    private static $instance = null;
+    private $debug;
+
+    private function __construct() {
+        $this->debug = BR_Debug::get_instance();
+        $this->init();
+    }
+
+    public static function get_instance() {
+        if (null === self::$instance) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
+
+    private function init() {
+        // Register AJAX handlers
         add_action('wp_ajax_submit_donation_verification', array($this, 'handle_verification_submission'));
         add_action('wp_ajax_nopriv_submit_donation_verification', array($this, 'handle_verification_submission'));
-        error_log('AJAX handlers registered for submit_donation_verification');
-        
-        // Add shortcode for verification form
+
+        // Register shortcode
         add_shortcode('beautiful_rescues_verification_form', array($this, 'render_verification_form'));
-        error_log('Shortcode registered for beautiful_rescues_verification_form');
-        
-        // Add form plugin support
-        add_action('wpforms_process_complete', array($this, 'handle_wpforms_submission'), 10, 4);
-        add_action('forminator_form_after_save_entry', array($this, 'handle_forminator_submission'), 10, 2);
-        error_log('Form plugin support actions registered');
+
+        // Register form plugin support
+        add_action('wpcf7_init', array($this, 'register_cf7_support'));
+        add_action('wpforms_loaded', array($this, 'register_wpforms_support'));
+        add_action('gform_loaded', array($this, 'register_gravityforms_support'));
+
+        $this->debug->log('BR_Donation_Verification class initialized', null, 'info');
     }
 
     /**
@@ -109,12 +122,11 @@ class BR_Donation_Verification {
      * Handle verification submission
      */
     public function handle_verification_submission() {
-        $debug = BR_Debug::get_instance();
-        $debug->log('Starting donation verification submission', null, 'info');
+        $this->debug->log('Starting donation verification submission', null, 'info');
 
         // Verify nonce
         if (!isset($_POST['verification_nonce'])) {
-            $debug->log('Security check failed: Nonce not found', null, 'error');
+            $this->debug->log('Security check failed: Nonce not found', null, 'error');
             wp_send_json_error(array(
                 'message' => 'Security check failed. Please try again.'
             ));

@@ -60,128 +60,116 @@ class BR_Beautiful_Rescues {
         // Get debug instance
         $this->debug = BR_Debug::get_instance();
         
-        
-        // Initialize plugin immediately
-        $this->init();
+        // Initialize plugin on init hook
+        add_action('init', array($this, 'init'));
     }
 
     /**
-     * Plugin activation hook
+     * Add checkout template to page templates
+     */
+    public static function add_checkout_template($templates) {
+        if (is_array($templates)) {
+            // For WordPress page templates
+            $templates['checkout.php'] = __('Checkout Page', 'beautiful-rescues');
+        }
+        return $templates;
+    }
+
+    /**
+     * Plugin activation
      */
     public static function activate() {
         $debug = BR_Debug::get_instance();
-        
-        // Set default options
-        $default_options = array(
-            'cloudinary_folder' => 'Cats',
-            'allowed_admin_domains' => 'replit.com,21adsmedia.com',
-            'max_file_size' => 5
-        );
+        $debug->log('Starting Beautiful Rescues activation', null, 'info');
 
-        // Only update if options don't exist
-        if (!get_option('beautiful_rescues_options')) {
-            add_option('beautiful_rescues_options', $default_options);
-        }
-        
-        // Create checkout page if it doesn't exist
-        $checkout_page = get_page_by_path('checkout');
-        if (!$checkout_page) {
-            $page_data = array(
-                'post_title'    => 'Checkout',
-                'post_name'     => 'checkout',
-                'post_status'   => 'publish',
-                'post_type'     => 'page',
-                'post_content'  => '',
-                'post_author'   => get_current_user_id(),
-                'page_template' => 'checkout.php'
-            );
-            
-            $page_id = wp_insert_post($page_data);
-            if ($page_id) {
-                update_post_meta($page_id, '_wp_page_template', 'checkout.php');
-            }
-        } else {
-            // Update existing checkout page to use our template
-            update_post_meta($checkout_page->ID, '_wp_page_template', 'checkout.php');
-        }
+        // Register post types first
+        self::register_post_types();
+        $debug->log('Post types registered during activation', null, 'info');
 
-        // Create review page if it doesn't exist
-        $review_page = get_page_by_path('review-donations');
-        if (!$review_page) {
-            $page_data = array(
-                'post_title'    => 'Review Donations',
-                'post_name'     => 'review-donations',
-                'post_status'   => 'publish',
-                'post_type'     => 'page',
-                'post_content'  => '[beautiful_rescues_donation_review]',
-                'post_author'   => get_current_user_id()
-            );
-            
-            $page_id = wp_insert_post($page_data);
-            if ($page_id) {
-                update_post_meta($page_id, '_wp_page_template', 'review.php');
-                $debug->log('Review page created', array(
-                    'page_id' => $page_id,
-                    'template' => 'review.php'
-                ));
-            }
-        } else {
-            // Update existing review page
-            wp_update_post(array(
-                'ID' => $review_page->ID,
-                'post_content' => '[beautiful_rescues_donation_review]'
-            ));
-            update_post_meta($review_page->ID, '_wp_page_template', 'review.php');
-            $debug->log('Review page updated', array(
-                'page_id' => $review_page->ID,
-                'template' => 'review.php'
-            ));
-        }
-        
+        // Register shortcodes
+        self::register_shortcodes();
+        $debug->log('Shortcodes registered', null, 'info');
+
+        // Register template
+        add_filter('theme_page_templates', array('BR_Beautiful_Rescues', 'add_checkout_template'));
+        $debug->log('Checkout template registered', null, 'info');
+
+        // Flush rewrite rules after registering post types
         flush_rewrite_rules();
+        $debug->log('Rewrite rules flushed', null, 'info');
+
+        // Create default settings
+        $settings = new BR_Settings();
+        $settings->create_default_settings();
+        $debug->log('Default settings created', null, 'info');
+
+        // Set activation flag
+        update_option('beautiful_rescues_activated', true);
+        $debug->log('Activation completed', null, 'info');
     }
 
     /**
      * Plugin deactivation hook
      */
     public static function deactivate() {
+        $debug = BR_Debug::get_instance();
+        $debug->log('Starting Beautiful Rescues deactivation', null, 'info');
+        
+        // Flush rewrite rules to clean up
         flush_rewrite_rules();
+        $debug->log('Rewrite rules flushed during deactivation', null, 'info');
     }
 
     /**
      * Initialize the plugin
      */
     public function init() {
+        $debug = BR_Debug::get_instance();
+        $debug->log('Starting Beautiful Rescues initialization', null, 'info');
+
         // Load text domain
         load_plugin_textdomain('beautiful-rescues', false, dirname(plugin_basename(__FILE__)) . '/languages');
+        $debug->log('Text domain loaded', null, 'info');
 
-        // Register post types and taxonomies on init hook with priority 0
-        add_action('init', array($this, 'register_post_types'), 0);
-        add_action('init', array($this, 'register_taxonomies'), 0);
+        // Register post types on every page load
+        self::register_post_types();
+        $debug->log('Post types registered during init', null, 'info');
 
-        // Initialize components after post types are registered
-        add_action('init', array($this, 'init_components'), 1);
+        // Register taxonomies
+        $this->register_taxonomies();
+        $debug->log('Taxonomies registered', null, 'info');
 
-        // Register shortcodes immediately
-        $this->register_shortcodes();
+        // Initialize components
+        $this->init_components();
+        $debug->log('Components initialized', null, 'info');
 
-        // Register scripts and styles
+        // Enqueue scripts and styles
         add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
+        $debug->log('Scripts and styles registered', null, 'info');
 
-        // Register admin menu after post types are registered (priority 20 to ensure post type exists)
-        add_action('admin_menu', array($this, 'register_admin_menu'), 20);
+        // Add admin notice if Cloudinary credentials are missing
+        if (is_admin()) {
+            add_action('admin_notices', array($this, 'check_cloudinary_credentials'));
+            $debug->log('Admin notices registered', null, 'info');
+        }
 
-        // Register template hooks
-        add_filter('theme_page_templates', array($this, 'add_checkout_template'));
-        add_filter('template_include', array($this, 'load_checkout_template'));
+        // Register admin menu
+        add_action('admin_menu', array($this, 'register_admin_menu'));
+        $debug->log('Admin menu registration hook added', null, 'info');
+
+        // Add template filters
         add_filter('single_template', array($this, 'load_donation_template'));
+        add_filter('template_include', array($this, 'load_checkout_template'));
+        $debug->log('Template filters added', null, 'info');
+
+        $debug->log('Beautiful Rescues initialization completed', null, 'info');
     }
 
     /**
      * Register post types
      */
-    public function register_post_types() {
+    public static function register_post_types() {
         // Register verifications post type
         $labels = array(
             'name'               => _x('Verifications', 'post type general name', 'beautiful-rescues'),
@@ -209,12 +197,25 @@ class BR_Beautiful_Rescues {
             'has_archive'         => true,
             'hierarchical'        => false,
             'menu_position'       => null,
-            'supports'            => array('title'),
+            'supports'            => array('title', 'editor', 'thumbnail'),
             'show_in_rest'        => false,
+            'menu_icon'           => 'dashicons-heart',
+            'capabilities'        => array(
+                'edit_post'          => 'manage_options',
+                'read_post'          => 'manage_options',
+                'delete_post'        => 'manage_options',
+                'edit_posts'         => 'manage_options',
+                'edit_others_posts'  => 'manage_options',
+                'publish_posts'      => 'manage_options',
+                'read_private_posts' => 'manage_options',
+                'create_posts'       => 'manage_options',
+                'delete_posts'       => 'manage_options',
+                'delete_others_posts'=> 'manage_options',
+            ),
         );
 
         register_post_type('verification', $args);
-        error_log('Registered verification post type');
+        BR_Debug::get_instance()->log('Registered verification post type', null, 'info');
     }
 
     /**
@@ -227,16 +228,16 @@ class BR_Beautiful_Rescues {
     /**
      * Register shortcodes
      */
-    public function register_shortcodes() {
-
-        add_shortcode('beautiful_rescues_cart', array($this, 'render_cart_shortcode'));
+    public static function register_shortcodes() {
+        add_shortcode('beautiful_rescues_cart', array('BR_Beautiful_Rescues', 'render_cart_shortcode'));
     }
 
     /**
      * Render cart shortcode
      */
-    public function render_cart_shortcode($atts) {
-        $this->debug->log('Rendering cart shortcode', array(
+    public static function render_cart_shortcode($atts) {
+        $debug = BR_Debug::get_instance();
+        $debug->log('Rendering cart shortcode', array(
             'atts' => $atts,
             'is_admin' => is_admin()
         ), 'info');
@@ -385,6 +386,9 @@ class BR_Beautiful_Rescues {
      * Register admin menu
      */
     public function register_admin_menu() {
+        $debug = BR_Debug::get_instance();
+        $debug->log('Registering admin menu', null, 'info');
+
         // Add main menu
         add_menu_page(
             __('Beautiful Rescues', 'beautiful-rescues'),
@@ -393,17 +397,7 @@ class BR_Beautiful_Rescues {
             'beautiful-rescues',
             array($this, 'render_admin_page'),
             'dashicons-heart',
-            20
-        );
-
-        // Add Settings submenu
-        add_submenu_page(
-            'beautiful-rescues',
-            __('Beautiful Rescues Settings', 'beautiful-rescues'),
-            __('Settings', 'beautiful-rescues'),
-            'manage_options',
-            'beautiful-rescues-settings',
-            array($this, 'render_admin_page')
+            30
         );
 
         // Add Verifications submenu
@@ -414,12 +408,24 @@ class BR_Beautiful_Rescues {
             'manage_options',
             'edit.php?post_type=verification'
         );
+
+        // Add Settings submenu
+        add_submenu_page(
+            'beautiful-rescues',
+            __('Settings', 'beautiful-rescues'),
+            __('Settings', 'beautiful-rescues'),
+            'manage_options',
+            'beautiful-rescues-settings',
+            array($this, 'render_admin_page')
+        );
+
+        $debug->log('Admin menu registration completed', null, 'info');
     }
 
     /**
      * Render the admin page content
      */
-    public function render_admin_page() {
+    public static function render_admin_page() {
         if (!current_user_can('manage_options')) {
             return;
         }
@@ -427,20 +433,363 @@ class BR_Beautiful_Rescues {
         // Get current page
         $page = isset($_GET['page']) ? $_GET['page'] : '';
         
+        // Create settings instance
+        $settings = new BR_Settings();
+        
         // Render different content based on the page
         if ($page === 'beautiful-rescues-settings') {
-            $this->settings->render_settings_form();
+            $settings->render_settings_form();
         } else {
-            // Default main page content
+            // Get verification stats
+            $total_verifications = wp_count_posts('verification');
+            $pending_verifications = count(get_posts(array(
+                'post_type' => 'verification',
+                'posts_per_page' => -1,
+                'meta_query' => array(
+                    array(
+                        'key' => '_status',
+                        'value' => 'pending'
+                    )
+                )
+            )));
+            $verified_count = count(get_posts(array(
+                'post_type' => 'verification',
+                'posts_per_page' => -1,
+                'meta_query' => array(
+                    array(
+                        'key' => '_status',
+                        'value' => 'verified'
+                    )
+                )
+            )));
+            
+            // Get recent verifications
+            $recent_verifications = get_posts(array(
+                'post_type' => 'verification',
+                'posts_per_page' => 5,
+                'orderby' => 'date',
+                'order' => 'DESC'
+            ));
+
+            // Get Cloudinary stats
+            $cloudinary = new BR_Cloudinary_Integration();
+            
+            // Get total images count from transient or calculate it
+            $total_images = get_transient('br_total_images_count');
+            if (false === $total_images) {
+                $total_images = $cloudinary->get_total_images_count('Cats');
+                set_transient('br_total_images_count', $total_images, HOUR_IN_SECONDS);
+            }
+            
+            // Start output buffering
+            ob_start();
             ?>
-            <div class="wrap">
-                <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
-                <div class="beautiful-rescues-dashboard">
-                    <h2><?php _e('Welcome to Beautiful Rescues', 'beautiful-rescues'); ?></h2>
-                    <p><?php _e('Use the menu on the left to manage your rescue verifications and settings.', 'beautiful-rescues'); ?></p>
+            <div class="wrap beautiful-rescues-dashboard">                
+                <!-- Welcome Section -->
+                <div class="br-welcome-section">
+                    <div class="br-welcome-content">
+                        <h1><?php _e('Welcome to Beautiful Rescues', 'beautiful-rescues'); ?></h1>
+                        <p><?php _e('Manage your rescue verifications, review donations, and configure settings from this dashboard.', 'beautiful-rescues'); ?></p>
+                    </div>
+                    <div class="br-welcome-image">
+                        <img src="<?php echo esc_url(BR_PLUGIN_URL . 'admin/images/welcome.webp'); ?>" alt="Beautiful Rescues">
+                    </div>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="br-stats-grid">
+                    <div class="br-stat-card">
+                        <div class="br-stat-icon">
+                            <span class="dashicons dashicons-heart"></span>
+                        </div>
+                        <div class="br-stat-content">
+                            <h3><?php _e('Total Verifications', 'beautiful-rescues'); ?></h3>
+                            <p class="br-stat-number"><?php echo esc_html($total_verifications->publish); ?></p>
+                        </div>
+                    </div>
+                    
+                    <div class="br-stat-card">
+                        <div class="br-stat-icon pending">
+                            <span class="dashicons dashicons-clock"></span>
+                        </div>
+                        <div class="br-stat-content">
+                            <h3><?php _e('Pending Reviews', 'beautiful-rescues'); ?></h3>
+                            <p class="br-stat-number"><?php echo esc_html($pending_verifications); ?></p>
+                        </div>
+                    </div>
+                    
+                    <div class="br-stat-card">
+                        <div class="br-stat-icon">
+                            <span class="dashicons dashicons-format-gallery"></span>
+                        </div>
+                        <div class="br-stat-content">
+                            <h3><?php _e('Total Images', 'beautiful-rescues'); ?></h3>
+                            <p class="br-stat-number"><?php echo esc_html($total_images); ?></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="br-quick-actions">
+                    <h3><?php _e('Quick Actions', 'beautiful-rescues'); ?></h3>
+                    <div class="br-action-buttons">
+                        <a href="<?php echo esc_url(admin_url('post-new.php?post_type=verification')); ?>" class="button button-primary">
+                            <span class="dashicons dashicons-plus"></span>
+                            <?php _e('Add New Verification', 'beautiful-rescues'); ?>
+                        </a>
+                        <a href="<?php echo esc_url(admin_url('admin.php?page=beautiful-rescues-settings')); ?>" class="button">
+                            <span class="dashicons dashicons-admin-settings"></span>
+                            <?php _e('Configure Settings', 'beautiful-rescues'); ?>
+                        </a>
+                        <a href="<?php echo esc_url(home_url('/review-donations/')); ?>" class="button">
+                            <span class="dashicons dashicons-visibility"></span>
+                            <?php _e('Review Donations', 'beautiful-rescues'); ?>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Recent Verifications -->
+                <div class="br-recent-verifications">
+                    <h3><?php _e('Recent Verifications', 'beautiful-rescues'); ?></h3>
+                    <table class="wp-list-table widefat fixed striped">
+                        <thead>
+                            <tr>
+                                <th><?php _e('Title', 'beautiful-rescues'); ?></th>
+                                <th><?php _e('Status', 'beautiful-rescues'); ?></th>
+                                <th><?php _e('Date', 'beautiful-rescues'); ?></th>
+                                <th><?php _e('Actions', 'beautiful-rescues'); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($recent_verifications)) : ?>
+                                <?php foreach ($recent_verifications as $verification) : 
+                                    $status = get_post_meta($verification->ID, '_status', true);
+                                    $status_class = $status ? 'status-' . esc_attr($status) : 'status-pending';
+                                ?>
+                                    <tr>
+                                        <td><?php echo esc_html($verification->post_title); ?></td>
+                                        <td><span class="br-status <?php echo $status_class; ?>"><?php echo esc_html(ucfirst($status ?: 'pending')); ?></span></td>
+                                        <td><?php echo esc_html(get_the_date('', $verification)); ?></td>
+                                        <td>
+                                            <a href="<?php echo esc_url(get_edit_post_link($verification->ID)); ?>" class="button button-small">
+                                                <?php _e('Edit', 'beautiful-rescues'); ?>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else : ?>
+                                <tr>
+                                    <td colspan="4"><?php _e('No recent verifications found.', 'beautiful-rescues'); ?></td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- System Status -->
+                <div class="br-system-status">
+                    <h3><?php _e('System Status', 'beautiful-rescues'); ?></h3>
+                    <div class="br-status-grid">
+                        <?php
+                        // Check Cloudinary credentials
+                        $options = get_option('beautiful_rescues_options');
+                        $cloudinary_configured = !empty($options['cloudinary_cloud_name']) && 
+                                               !empty($options['cloudinary_api_key']) && 
+                                               !empty($options['cloudinary_api_secret']);
+                        ?>
+                        <div class="br-status-item <?php echo $cloudinary_configured ? 'status-ok' : 'status-error'; ?>">
+                            <span class="dashicons <?php echo $cloudinary_configured ? 'dashicons-yes' : 'dashicons-warning'; ?>"></span>
+                            <span class="br-status-label"><?php _e('Cloudinary Configuration', 'beautiful-rescues'); ?></span>
+                        </div>
+                        
+                        <?php
+                        // Check upload directory
+                        $upload_dir = wp_upload_dir();
+                        $verification_dir = $upload_dir['basedir'] . '/verifications';
+                        $upload_dir_writable = is_writable($verification_dir);
+                        ?>
+                        <div class="br-status-item <?php echo $upload_dir_writable ? 'status-ok' : 'status-error'; ?>">
+                            <span class="dashicons <?php echo $upload_dir_writable ? 'dashicons-yes' : 'dashicons-warning'; ?>"></span>
+                            <span class="br-status-label"><?php _e('Upload Directory', 'beautiful-rescues'); ?></span>
+                        </div>
+                        
+                        <?php
+                        // Check rewrite rules
+                        $rewrite_rules = get_option('rewrite_rules');
+                        $rewrite_rules_ok = !empty($rewrite_rules);
+                        ?>
+                        <div class="br-status-item <?php echo $rewrite_rules_ok ? 'status-ok' : 'status-error'; ?>">
+                            <span class="dashicons <?php echo $rewrite_rules_ok ? 'dashicons-yes' : 'dashicons-warning'; ?>"></span>
+                            <span class="br-status-label"><?php _e('Rewrite Rules', 'beautiful-rescues'); ?></span>
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            <style>
+                .beautiful-rescues-dashboard {
+                    max-width: 1200px;
+                    margin: 20px auto;
+                }
+
+                .br-welcome-section {
+                    display: flex;
+                    align-items: center;
+                    background: #fff;
+                    padding: 30px;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    margin-bottom: 30px;
+                }
+
+                .br-welcome-content {
+                    flex: 1;
+                }
+
+                .br-welcome-image {
+                    width: 200px;
+                    margin-left: 30px;
+                }
+
+                .br-welcome-image img {
+                    max-width: 100%;
+                    height: auto;
+                }
+
+                .br-stats-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                    gap: 20px;
+                    margin-bottom: 30px;
+                }
+
+                .br-stat-card {
+                    background: #fff;
+                    padding: 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    display: flex;
+                    align-items: center;
+                }
+
+                .br-stat-icon {
+                    width: 50px;
+                    height: 50px;
+                    background: #f0f0f0;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin-right: 15px;
+                }
+
+                .br-stat-icon .dashicons {
+                    font-size: 24px;
+                    width: 24px;
+                    height: 24px;
+                }
+
+                .br-stat-icon.pending {
+                    background: #fff3cd;
+                    color: #856404;
+                }
+
+                .br-stat-number {
+                    font-size: 24px;
+                    font-weight: bold;
+                    margin: 5px 0 0;
+                }
+
+                .br-quick-actions {
+                    background: #fff;
+                    padding: 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    margin-bottom: 30px;
+                }
+
+                .br-action-buttons {
+                    display: flex;
+                    gap: 10px;
+                    margin-top: 15px;
+                }
+
+                .br-action-buttons .button {
+                    display: flex;
+                    align-items: center;
+                    gap: 5px;
+                }
+
+                .br-recent-verifications {
+                    background: #fff;
+                    padding: 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    margin-bottom: 30px;
+                }
+
+                .br-status {
+                    display: inline-block;
+                    padding: 4px 8px;
+                    border-radius: 4px;
+                    font-size: 12px;
+                    font-weight: 500;
+                }
+
+                .status-pending {
+                    background: #fff3cd;
+                    color: #856404;
+                }
+
+                .status-verified {
+                    background: #d4edda;
+                    color: #155724;
+                }
+
+                .status-rejected {
+                    background: #f8d7da;
+                    color: #721c24;
+                }
+
+                .br-system-status {
+                    background: #fff;
+                    padding: 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                }
+
+                .br-status-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                    gap: 15px;
+                    margin-top: 15px;
+                }
+
+                .br-status-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    padding: 10px;
+                    border-radius: 4px;
+                    background: #f8f9fa;
+                }
+
+                .br-status-item.status-ok {
+                    color: #155724;
+                }
+
+                .br-status-item.status-error {
+                    color: #721c24;
+                }
+
+                .br-status-item .dashicons {
+                    font-size: 20px;
+                    width: 20px;
+                    height: 20px;
+                }
+            </style>
             <?php
+            echo ob_get_clean();
         }
     }
 
@@ -471,25 +820,13 @@ class BR_Beautiful_Rescues {
         new BR_Gallery_Shortcode();
         
         // Initialize donation verification
-        new BR_Donation_Verification();
+        BR_Donation_Verification::get_instance();
 
         // Initialize donation review
         new BR_Donation_Review();
 
         // Initialize cart shortcode
         new BR_Cart_Shortcode();
-    }
-
-    /**
-     * Add checkout template to page templates
-     */
-    public function add_checkout_template($templates) {
-
-        if (is_array($templates)) {
-            // For WordPress page templates
-            $templates['checkout.php'] = __('Checkout Page', 'beautiful-rescues');
-        }
-        return $templates;
     }
 
     /**
@@ -542,5 +879,12 @@ class BR_Beautiful_Rescues {
      */
     public function enqueue_admin_scripts() {
         // Enqueue admin scripts here
+    }
+
+    /**
+     * Add admin notice if Cloudinary credentials are missing
+     */
+    public function check_cloudinary_credentials() {
+        // Implementation of the method
     }
 } 

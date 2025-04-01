@@ -188,4 +188,29 @@ class BR_Settings {
         <p class="description">Enter the full URL of your watermark image. Recommended format: WebP with transparency.</p>
         <?php
     }
+
+    /**
+     * Create default settings
+     */
+    public function create_default_settings() {
+        $debug = BR_Debug::get_instance();
+        $debug->log('Creating default settings', null, 'info');
+
+        // Set default options
+        $default_options = array(
+            'cloudinary_folder' => 'Cats',
+            'allowed_admin_domains' => 'replit.com,21adsmedia.com',
+            'max_file_size' => 5
+        );
+
+        // Only update if options don't exist
+        if (!get_option('beautiful_rescues_options')) {
+            add_option('beautiful_rescues_options', $default_options);
+            $debug->log('Default settings created', array(
+                'options' => $default_options
+            ), 'info');
+        } else {
+            $debug->log('Settings already exist, skipping default creation', null, 'info');
+        }
+    }
 } 
