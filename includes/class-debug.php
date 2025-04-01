@@ -7,6 +7,13 @@ class BR_Debug {
     private $is_debug_enabled = false;
     private $log_file = 'beautiful-rescues-debug.log';
     private $log_path;
+    private $log_levels = array(
+        'error' => 0,
+        'warning' => 1,
+        'info' => 2,
+        'debug' => 3
+    );
+    private $current_log_level = 2; // Default to 'info' level
 
     private function __construct() {
         // Check for debug mode in wp-config.php, environment, or plugin options
@@ -14,9 +21,13 @@ class BR_Debug {
                                  (getenv('BR_DEBUG') === 'true') ||
                                  (get_option('beautiful_rescues_options')['enable_debug'] ?? false);
 
-        $this->log_path = WP_CONTENT_DIR . '/' . $this->log_file;
-        
+        // Set log level from environment or default to 'info'
+        $env_log_level = getenv('BR_LOG_LEVEL');
+        if ($env_log_level && isset($this->log_levels[$env_log_level])) {
+            $this->current_log_level = $this->log_levels[$env_log_level];
+        }
 
+        $this->log_path = WP_CONTENT_DIR . '/' . $this->log_file;
     }
 
     private function test_log_file() {
@@ -70,6 +81,11 @@ class BR_Debug {
             return;
         }
 
+        // Check if we should log based on level
+        if (!isset($this->log_levels[$type]) || $this->log_levels[$type] > $this->current_log_level) {
+            return;
+        }
+
         try {
             $timestamp = current_time('mysql');
             $log_message = sprintf(
@@ -80,7 +96,10 @@ class BR_Debug {
             );
 
             if ($data !== null) {
-                $log_message .= "Data: " . print_r($data, true) . "\n";
+                // Only log data for error and warning levels, or if explicitly requested
+                if ($type === 'error' || $type === 'warning' || $this->current_log_level >= 3) {
+                    $log_message .= "Data: " . print_r($data, true) . "\n";
+                }
             }
 
             // Log to both WordPress debug log and our custom log file
@@ -99,11 +118,20 @@ class BR_Debug {
 
     public function enable() {
         $this->is_debug_enabled = true;
-        $this->log('Debug mode enabled manually');
+        $this->log('Debug mode enabled manually', null, 'info');
     }
 
     public function disable() {
         $this->is_debug_enabled = false;
-        $this->log('Debug mode disabled manually');
+        $this->log('Debug mode disabled manually', null, 'info');
+    }
+
+    public function set_log_level($level) {
+        if (isset($this->log_levels[$level])) {
+            $this->current_log_level = $this->log_levels[$level];
+            $this->log("Log level changed to: $level", null, 'info');
+            return true;
+        }
+        return false;
     }
 } 

@@ -383,7 +383,7 @@ class BR_Donation_Review {
         $selected_images = get_post_meta($donation_id, '_selected_images', true);
 
         // Send email notification
-        $this->send_status_notification($donor_email, $donor_name, $status, $selected_images);
+        $this->send_status_notification($donor_email, $donor_name, $status, $selected_images, $donation_id);
 
         wp_send_json_success();
     }
@@ -432,12 +432,18 @@ class BR_Donation_Review {
     /**
      * Send status notification email
      */
-    private function send_status_notification($email, $name, $status, $selected_images = array()) {
+    private function send_status_notification($email, $name, $status, $selected_images = array(), $post_id = null) {
+        if (!$post_id) {
+            $this->debug->log('No post ID provided for status notification', null, 'error');
+            return;
+        }
+
         $this->debug->log('Preparing status notification email', array(
             'email' => $email,
             'name' => $name,
             'status' => $status,
-            'selected_images' => $selected_images
+            'selected_images' => $selected_images,
+            'post_id' => $post_id
         ));
 
         $subject = sprintf(
@@ -445,11 +451,17 @@ class BR_Donation_Review {
             ucfirst($status)
         );
 
+        // Get the verification URL with access token
+        $access_token = get_post_meta($post_id, '_access_token', true);
+        $verification_url = add_query_arg('token', $access_token, get_permalink($post_id));
+
         $message = sprintf(
             "Dear %s,\n\n" .
-            "Your donation has been %s. Thank you for your support!\n\n",
+            "Your donation has been %s. Thank you for your support!\n\n" .
+            "You can view your verification record at: %s\n\n",
             $name,
-            $status
+            $status,
+            $verification_url
         );
 
         if ($status === 'verified' && !empty($selected_images)) {

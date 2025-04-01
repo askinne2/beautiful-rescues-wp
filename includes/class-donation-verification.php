@@ -109,16 +109,12 @@ class BR_Donation_Verification {
      * Handle verification submission
      */
     public function handle_verification_submission() {
-        error_log('========== START DONATION VERIFICATION SUBMISSION ==========');
-        error_log('Request method: ' . $_SERVER['REQUEST_METHOD']);
-        error_log('Request URI: ' . $_SERVER['REQUEST_URI']);
-        error_log('POST data received: ' . print_r($_POST, true));
-        error_log('FILES data received: ' . print_r($_FILES, true));
-        error_log('Raw POST data: ' . file_get_contents('php://input'));
+        $debug = BR_Debug::get_instance();
+        $debug->log('Starting donation verification submission', null, 'info');
 
         // Verify nonce
         if (!isset($_POST['verification_nonce'])) {
-            error_log('Nonce not found in POST data');
+            $debug->log('Security check failed: Nonce not found', null, 'error');
             wp_send_json_error(array(
                 'message' => 'Security check failed. Please try again.'
             ));
@@ -126,26 +122,24 @@ class BR_Donation_Verification {
         }
 
         if (!wp_verify_nonce($_POST['verification_nonce'], 'beautiful_rescues_verification_nonce')) {
-            error_log('Nonce verification failed. Received: ' . $_POST['verification_nonce']);
+            $debug->log('Security check failed: Invalid nonce', null, 'error');
             wp_send_json_error(array(
                 'message' => 'Security check failed. Please try again.'
             ));
             return;
         }
-        error_log('Nonce verification passed');
 
         // Validate required fields
         $required_fields = array('_donor_first_name', '_donor_last_name', '_donor_email', '_donor_phone', '_verification_file');
         foreach ($required_fields as $field) {
             if (empty($_POST[$field]) && empty($_FILES[$field])) {
-                error_log("Required field missing: $field");
+                $debug->log("Validation failed: Missing required field: $field", null, 'error');
                 wp_send_json_error(array(
                     'message' => 'Please fill in all required fields.'
                 ));
                 return;
             }
         }
-        error_log('Required fields validation passed');
 
         // Create uploads directory if it doesn't exist
         $upload_dir = wp_upload_dir();
@@ -153,14 +147,13 @@ class BR_Donation_Verification {
         
         if (!file_exists($verification_dir)) {
             if (!wp_mkdir_p($verification_dir)) {
-                error_log('Failed to create verification directory: ' . $verification_dir);
+                $debug->log('Failed to create verification directory', array('path' => $verification_dir), 'error');
                 wp_send_json_error(array(
                     'message' => 'Failed to create upload directory.'
                 ));
                 return;
             }
         }
-        error_log('Upload directory check passed');
 
         // Move uploaded file
         $file = $_FILES['_verification_file'];
@@ -169,13 +162,12 @@ class BR_Donation_Verification {
         $destination = $verification_dir . '/' . $unique_filename;
 
         if (!move_uploaded_file($file['tmp_name'], $destination)) {
-            error_log('Failed to move uploaded file to: ' . $destination);
+            $debug->log('Failed to move uploaded file', array('destination' => $destination), 'error');
             wp_send_json_error(array(
                 'message' => 'Failed to save uploaded file.'
             ));
             return;
         }
-        error_log('File upload successful: ' . $destination);
 
         // Generate unique post title
         $post_title = sprintf(
@@ -184,24 +176,26 @@ class BR_Donation_Verification {
             sanitize_text_field($_POST['_donor_last_name']),
             current_time('Y-m-d H:i:s')
         );
-        error_log('Generated post title: ' . $post_title);
 
         // Create verification post
         $post_data = array(
             'post_title' => $post_title,
             'post_type' => 'verification',
-            'post_status' => 'pending'
+            'post_status' => 'publish'
         );
 
         $post_id = wp_insert_post($post_data);
         if (is_wp_error($post_id)) {
-            error_log('Failed to create verification post: ' . $post_id->get_error_message());
+            $debug->log('Failed to create verification post', array('error' => $post_id->get_error_message()), 'error');
             wp_send_json_error(array(
                 'message' => 'Failed to create verification record.'
             ));
             return;
         }
-        error_log('Created verification post with ID: ' . $post_id);
+
+        // Generate and store a unique access token
+        $access_token = wp_generate_password(32, false);
+        update_post_meta($post_id, '_access_token', $access_token);
 
         // Store verification data
         $meta_fields = array(
@@ -215,45 +209,30 @@ class BR_Donation_Verification {
         foreach ($meta_fields as $new_field => $old_field) {
             if (isset($_POST[$old_field])) {
                 update_post_meta($post_id, $new_field, sanitize_text_field($_POST[$old_field]));
-                error_log("Updated post meta: $new_field");
             }
         }
 
         // Store file path
         update_post_meta($post_id, '_verification_file', $unique_filename);
         update_post_meta($post_id, '_verification_file_path', $destination);
-        error_log('Stored verification file path');
 
         // Store selected images
         if (!empty($_POST['selected_images'])) {
-            error_log('Processing selected images: ' . $_POST['selected_images']);
             $selected_images = json_decode(stripslashes($_POST['selected_images']), true);
             if (is_array($selected_images)) {
                 update_post_meta($post_id, '_selected_images', $selected_images);
-                error_log('Stored selected images: ' . print_r($selected_images, true));
-            } else {
-                error_log('Failed to decode selected images JSON');
             }
-        } else {
-            error_log('No selected images found in POST data');
         }
 
-        // Set initial status
+        // Set initial status and submission date
         update_post_meta($post_id, '_status', 'pending');
-        error_log('Set initial verification status to pending');
-
-        // Set submission date
         update_post_meta($post_id, '_submission_date', current_time('mysql'));
-        error_log('Set submission date');
 
         // Send email notifications
-        error_log('Triggering email notifications');
         $this->send_admin_notification($post_id);
         $this->send_donor_confirmation($post_id);
-        error_log('Email notifications triggered');
 
-        error_log('Verification submission successful. Post ID: ' . $post_id);
-        error_log('========== END DONATION VERIFICATION SUBMISSION ==========');
+        $debug->log('Verification submission successful', array('post_id' => $post_id), 'info');
 
         // Return success response
         wp_send_json_success(array(
@@ -282,7 +261,7 @@ class BR_Donation_Verification {
                 current_time('Y-m-d H:i:s')
             ),
             'post_type' => 'verification',
-            'post_status' => 'pending'
+            'post_status' => 'publish'
         );
 
         $donation_id = wp_insert_post($post_data);
