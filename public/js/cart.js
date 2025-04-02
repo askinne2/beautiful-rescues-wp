@@ -9,6 +9,7 @@
     const checkoutColumn = $('.checkout-column');
     const donationForm = $('.donation-form');
     let selectedImages = [];
+    let isAnimating = false;
 
     // Create toast container if not exists
     if (!$('.toast-container').length) {
@@ -37,6 +38,30 @@
             toast.addClass('hiding');
             setTimeout(() => toast.remove(), 300);
         }, duration);
+    }
+
+    // Function to handle cart visibility with animation
+    function updateCartVisibility(show) {
+        if (isAnimating) return;
+        isAnimating = true;
+
+        // Check if we're on the checkout page
+        if ($('body').hasClass('page-template-checkout')) {
+            cart.hide();
+            isAnimating = false;
+            return;
+        }
+
+        if (show) {
+            cart.removeClass('hidden animate-out').addClass('visible animate-in');
+        } else {
+            cart.removeClass('visible animate-in').addClass('hidden animate-out');
+        }
+
+        // Reset animation state after animation completes
+        setTimeout(() => {
+            isAnimating = false;
+        }, 500);
     }
 
     // Get selected images from localStorage and ensure HTTPS URLs
@@ -100,8 +125,8 @@
             selectedImages: selectedImages
         });
 
-        $('.cart-count').text(count);
-        $('.cart-button').toggleClass('hidden', count === 0);
+        cartCount.text(count);
+        updateCartVisibility(count > 0);
     }
 
     // Function to open donation modal
@@ -195,8 +220,8 @@
         }
     });
 
-    // Initialize cart count
-    updateCartCount();
+    // Initialize cart visibility
+    updateCartVisibility(selectedImages.length > 0);
 
     // Close modal on escape key
     $(document).on('keydown', function(e) {
