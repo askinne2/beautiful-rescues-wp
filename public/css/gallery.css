@@ -69,15 +69,6 @@
     transform: none;
 }
 
-.verify-donation-button {
-    background: var(--e-global-color-primary, #F0759E);
-    color: var(--e-global-color-background, #ffffff);
-}
-
-.verify-donation-button:hover {
-    background: var(--e-global-color-secondary, #E04B7C);
-}
-
 /* Gallery Grid */
 .gallery-grid {
     display: grid;
@@ -88,7 +79,6 @@
 
 .gallery-item {
     position: relative;
-    margin-bottom: 2rem;
     transition: all 0.3s ease;
 }
 
@@ -109,6 +99,7 @@
     -o-user-drag: none;
     width: 100%;
     height: 0;
+    border-radius: 10px;
 }
 
 .gallery-item-image img {
@@ -211,8 +202,7 @@
 }
 
 /* Modal */
-.gallery-modal,
-.donation-modal {
+.gallery-modal {
     display: none;
     position: fixed;
     top: 0;
@@ -225,8 +215,7 @@
     overflow-y: auto;
 }
 
-.modal-content,
-.donation-modal-content {
+.modal-content {
     position: relative;
     max-width: 90vw;
     max-height: 90vh;
@@ -315,209 +304,12 @@ body.modal-open {
     .modal-content {
         padding: 1rem;
     }
-
-    .donation-modal-content {
-        margin: 1rem;
-        padding: 1rem;
-    }
 }
 
 /* Gallery Actions */
 .gallery-actions {
     display: flex;
     gap: 1rem;
-}
-
-/* Donation Modal */
-.donation-modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0,0,0,0.9);
-    z-index: 1000;
-    padding: 2rem;
-}
-
-.donation-modal-content {
-    position: relative;
-    max-width: 600px;
-    width: 100%;
-    background: white;
-    border-radius: 8px;
-    padding: 2rem;
-    margin: 2rem auto;
-    max-height: 90vh;
-    overflow-y: auto;
-}
-
-.donation-modal-header {
-    margin-bottom: 2rem;
-    text-align: center;
-}
-
-.donation-modal-header h2 {
-    margin: 0 0 1rem;
-    color: #333;
-}
-
-.donation-modal-header p {
-    margin: 0;
-    color: #666;
-}
-
-.selected-images-preview {
-    margin-bottom: 2rem;
-}
-
-.selected-images-preview h3 {
-    margin: 0 0 1rem;
-    color: #333;
-}
-
-.selected-images-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: 1rem;
-}
-
-.selected-image-item {
-    position: relative;
-    padding-top: 100%;
-    border-radius: 4px;
-    overflow: hidden;
-}
-
-.selected-image-item img {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.selected-image-remove {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    background: rgba(0,0,0,0.5);
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 24px;
-    height: 24px;
-    line-height: 24px;
-    text-align: center;
-    cursor: pointer;
-    font-size: 1rem;
-}
-
-.donation-verification-form {
-    display: grid;
-}
-
-.form-group {
-    display: grid;
-    gap: 0.5rem;
-}
-
-.form-group label {
-    font-weight: 500;
-    color: #333;
-}
-
-.form-group input,
-.form-group textarea {
-    padding: 0.75rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 1rem;
-    transition: border-color 0.2s ease;
-}
-
-.form-group input:focus,
-.form-group textarea:focus {
-    border-color: #4CAF50;
-    outline: none;
-}
-
-.form-group textarea {
-    resize: vertical;
-    min-height: 100px;
-}
-
-.form-group input[type="file"] {
-    padding: 0.5rem;
-    background: #f8f8f8;
-    border: 2px dashed #ddd;
-    cursor: pointer;
-}
-
-.form-group input[type="file"]:hover {
-    border-color: #4CAF50;
-}
-
-.form-help {
-    font-size: 0.875rem;
-    color: #666;
-    margin-top: 0.25rem;
-}
-
-.submit-donation {
-    padding: 0.75rem 1.5rem;
-    background: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 1rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    width: 100%;
-}
-
-.submit-donation:hover {
-    background: #45a049;
-    transform: translateY(-1px);
-}
-
-.submit-donation:active {
-    transform: translateY(0);
-}
-
-.form-group input.error,
-.form-group textarea.error {
-    border-color: #dc3545;
-    background-color: #fff8f8;
-}
-
-.form-group input.error:focus,
-.form-group textarea.error:focus {
-    border-color: #dc3545;
-    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
-}
-
-.form-group input.error::placeholder,
-.form-group textarea.error::placeholder {
-    color: #dc3545;
-}
-
-.form-group input.error + .form-help,
-.form-group textarea.error + .form-help {
-    color: #dc3545;
-}
-
-/* Prevent form submission while processing */
-.donation-verification-form.submitting {
-    pointer-events: none;
-    opacity: 0.7;
-}
-
-.donation-verification-form.submitting .submit-donation {
-    cursor: not-allowed;
 }
 
 .selected-count-container {

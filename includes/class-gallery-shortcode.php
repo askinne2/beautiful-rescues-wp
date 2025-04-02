@@ -158,9 +158,6 @@ class BR_Gallery_Shortcode {
                         <option value="oldest" <?php selected($atts['sort'], 'oldest'); ?>><?php _e('Oldest First', 'beautiful-rescues'); ?></option>
                     </select>
                 </div>
-                <div class="gallery-actions">
-                    <button class="verify-donation-button"><?php _e('Verify Donation', 'beautiful-rescues'); ?></button>
-                </div>
             </div>
             <div class="gallery-grid">
                 <?php echo $initial_images_html; ?>

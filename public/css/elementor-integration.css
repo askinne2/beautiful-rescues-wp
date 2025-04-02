@@ -11,6 +11,7 @@
     --cart-text-color: #FFFFFF;
     --cart-color: #F0759E;
     --cart-color-hover: #E04B7C;
+    --br-white: #FFFFFF;
 }
 
 /* Gallery Integration with proper Elementor variable references */
@@ -60,7 +61,7 @@
 
 .gallery-item {
     position: relative !important;
-    margin-bottom: 2rem !important;
+
     transition: all 0.3s ease !important;
     display: block !important;
 }

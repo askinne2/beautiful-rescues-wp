@@ -3,9 +3,12 @@
 
     // Initialize variables
     const cart = $('.beautiful-rescues-cart');
-    const cartButton = $('.cart-button'); // Changed to search globally
-    const cartCount = $('.cart-count'); // Changed to search globally
-    let selectedImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]');
+    const cartButton = $('.cart-button');
+    const cartCount = $('.cart-count');
+    const selectedImagesGrid = $('.selected-images-grid');
+    const checkoutColumn = $('.checkout-column');
+    const donationForm = $('.donation-form');
+    let selectedImages = [];
 
     // Create toast container if not exists
     if (!$('.toast-container').length) {
@@ -36,55 +39,88 @@
         }, duration);
     }
 
+    // Get selected images from localStorage and ensure HTTPS URLs
+    selectedImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]')
+        .filter(img => img && img.id && img.url) // Filter out invalid entries
+        .map(img => ({
+            ...img,
+            url: img.url.replace('http://', 'https://')
+        }));
+
+    // Update localStorage with filtered and HTTPS URLs
+    localStorage.setItem('beautifulRescuesSelectedImages', JSON.stringify(selectedImages));
+
+    console.log('LocalStorage data:', {
+        selectedImages: selectedImages,
+        localStorage: localStorage.getItem('beautifulRescuesSelectedImages')
+    });
+
+    // Function to update selected images preview
+    function updateSelectedImagesPreview() {
+        console.log('Updating selected images preview:', {
+            selectedImages: selectedImages
+        });
+
+        // Only update preview if we're on the checkout page
+        if (selectedImagesGrid.length) {
+            if (!selectedImages.length) {
+                selectedImagesGrid.html('<p class="no-images">No images selected</p>');
+                if (checkoutColumn.length) {
+                    checkoutColumn.html('<div class="empty-cart-notice"><p>Your cart is empty. Please select some images before proceeding to checkout.</p><a href="/" class="button">Return to Gallery</a></div>');
+                }
+                return;
+            }
+
+            // Show images in grid with standardized data
+            const imagesHtml = selectedImages.map(image => `
+                <div class="selected-image-item" data-id="${image.id}">
+                    <img src="${image.url}" 
+                         alt="${image.filename || ''}"
+                         data-width="${image.width || ''}"
+                         data-height="${image.height || ''}">
+                    <button class="remove-image" data-id="${image.id}">&times;</button>
+                </div>
+            `).join('');
+
+            selectedImagesGrid.html(imagesHtml);
+            if (checkoutColumn.length && donationForm.length) {
+                checkoutColumn.html(donationForm);
+                donationForm.show();
+            }
+        }
+        
+        updateCartCount();
+    }
+
     // Function to update cart count
     function updateCartCount() {
-        const selectedImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]')
-            .map(img => ({
-                ...img,
-                url: img.url.replace('http://', 'https://')
-            }));
         const count = selectedImages.length;
         console.log('Updating cart count:', {
             count: count,
-            selectedImages: selectedImages,
-            localStorage: localStorage.getItem('beautifulRescuesSelectedImages')
+            selectedImages: selectedImages
         });
 
-        // Update localStorage with HTTPS URLs
-        localStorage.setItem('beautifulRescuesSelectedImages', JSON.stringify(selectedImages));
-
-        // Update all cart count elements on the page
         $('.cart-count').text(count);
         $('.cart-button').toggleClass('hidden', count === 0);
     }
 
     // Function to open donation modal
     function openDonationModal() {
-        // Refresh selected images from localStorage and ensure HTTPS URLs
-        selectedImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]')
-            .map(img => ({
-                ...img,
-                url: img.url.replace('http://', 'https://')
-            }));
-        console.log('Opening donation modal:', {
-            selectedImages: selectedImages,
-            count: selectedImages.length,
-            cartButtonHidden: cartButton.hasClass('hidden')
-        });
+        try {
+            // Check if there are any selected images
+            if (!selectedImages.length) {
+                console.log('No items in cart, showing toast notification');
+                showToast('You have no items in your cart');
+                return;
+            }
 
-        // Update localStorage with HTTPS URLs
-        localStorage.setItem('beautifulRescuesSelectedImages', JSON.stringify(selectedImages));
-
-        // Check if there are any selected images
-        if (!selectedImages.length) {
-            console.log('No items in cart, showing toast notification');
-            showToast('You have no items in your cart');
-            return;
+            // Redirect to checkout page
+            console.log('Redirecting to checkout:', beautifulRescuesCart.checkoutUrl);
+            window.location.href = beautifulRescuesCart.checkoutUrl;
+        } catch (error) {
+            console.error('Error opening donation modal:', error);
+            showToast('An error occurred while processing your cart');
         }
-
-        // Redirect to checkout page
-        console.log('Redirecting to checkout:', beautifulRescuesCart.checkoutUrl);
-        window.location.href = beautifulRescuesCart.checkoutUrl;
     }
 
     // Function to close modal
@@ -115,17 +151,17 @@
             contentType: false,
             success: function(response) {
                 if (response.success) {
-                    alert(beautifulRescuesCart.i18n.thankYou);
+                    showToast(beautifulRescuesCart.i18n.thankYou);
                     selectedImages = [];
                     localStorage.setItem('beautifulRescuesSelectedImages', JSON.stringify(selectedImages));
                     updateCartCount();
                     closeModal($form.closest('.donation-modal'));
                 } else {
-                    alert(response.data?.message || beautifulRescuesCart.i18n.error);
+                    showToast(response.data?.message || beautifulRescuesCart.i18n.error);
                 }
             },
             error: function() {
-                alert(beautifulRescuesCart.i18n.error);
+                showToast(beautifulRescuesCart.i18n.error);
             },
             complete: function() {
                 $form.removeClass('submitting');
@@ -148,16 +184,15 @@
         }
     });
 
-    // Listen for custom event from gallery
-    $(document).on('beautifulRescuesSelectionChanged', function() {
-        console.log('Selection changed event received');
-        selectedImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]');
-        console.log('Cart state after selection change:', {
-            selectedImages: selectedImages,
-            count: selectedImages.length,
-            localStorage: localStorage.getItem('beautifulRescuesSelectedImages')
-        });
-        updateCartCount();
+    // Listen for selection changes from gallery
+    $(document).on('beautifulRescuesSelectionChanged', function(e, data) {
+        console.log('Selection changed event received:', data);
+        
+        if (data && data.selectedImages) {
+            selectedImages = data.selectedImages.filter(img => img && img.id && img.url);
+            localStorage.setItem('beautifulRescuesSelectedImages', JSON.stringify(selectedImages));
+            updateSelectedImagesPreview();
+        }
     });
 
     // Initialize cart count
@@ -185,7 +220,7 @@
         // Check if there are any selected images
         if (!selectedImages.length) {
             console.warn('No images selected, preventing checkout');
-            alert(beautifulRescuesCart.i18n.noImagesSelected);
+            showToast(beautifulRescuesCart.i18n.noImagesSelected);
             return;
         }
         

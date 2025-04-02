@@ -161,12 +161,12 @@ class BR_Cloudinary_Integration {
         $transformations_string = implode('/', $transformations);
 
         $url = "https://res.cloudinary.com/{$this->cloud_name}/image/upload/{$transformations_string}/{$public_id}";
-        $this->debug->log('Generated Cloudinary URL', array(
-            'public_id' => $public_id,
-            'options' => $options,
-            'transformations' => $transformations,
-            'url' => $url
-        ), 'info');
+        // $this->debug->log('Generated Cloudinary URL', array(
+        //     'public_id' => $public_id,
+        //     'options' => $options,
+        //     'transformations' => $transformations,
+        //     'url' => $url
+        // ), 'info');
 
         return $url;
     }

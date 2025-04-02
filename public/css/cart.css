@@ -49,7 +49,7 @@
 
 .cart-count {
     background: var(--cart-background, var(--e-global-color-background));
-    color: var(--cart-color, var(--e-global-color-accent));
+    color: var(--br-white, var(--e-global-color-accent));
     padding: 0.25rem 0.75rem;
     border-radius: 20px;
     font-weight: bold;
