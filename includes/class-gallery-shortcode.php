@@ -157,16 +157,15 @@ class BR_Gallery_Shortcode {
             <div class="gallery-controls">
                 <div class="gallery-sort">
                     <select class="gallery-sort-select">
+                        <option value="random" <?php selected($atts['sort'], 'random'); ?>><?php _e('Random', 'beautiful-rescues'); ?></option>
                         <option value="newest" <?php selected($atts['sort'], 'newest'); ?>><?php _e('Newest First', 'beautiful-rescues'); ?></option>
                         <option value="oldest" <?php selected($atts['sort'], 'oldest'); ?>><?php _e('Oldest First', 'beautiful-rescues'); ?></option>
+                        <option value="name" <?php selected($atts['sort'], 'name'); ?>><?php _e('Name (A-Z)', 'beautiful-rescues'); ?></option>
                     </select>
                 </div>
             </div>
             <div class="gallery-grid">
                 <?php echo $initial_images_html; ?>
-                <?php if (empty($initial_images_html)): ?>
-                    <div class="gallery-loading">Loading images from Cloudinary...</div>
-                <?php endif; ?>
             </div>
             <?php if ($total_images > count($initial_images)): ?>
                 <button class="load-more-button"><?php _e('Load More', 'beautiful-rescues'); ?></button>
@@ -203,7 +202,6 @@ class BR_Gallery_Shortcode {
      */
     public function ajax_load_images() {
         $debug = BR_Debug::get_instance();
-        check_ajax_referer('beautiful_rescues_gallery_nonce', 'nonce');
 
         $category = sanitize_text_field($_POST['category'] ?? '');
         $sort = sanitize_text_field($_POST['sort'] ?? 'random');
@@ -217,18 +215,43 @@ class BR_Gallery_Shortcode {
             'per_page' => $per_page
         ), 'info');
 
-        $images = $this->cloudinary->get_images_from_folder($category, $per_page, $sort, $page);
-        $total_images = $this->cloudinary->get_total_images_count($category);
+        // Get all images for the category
+        $images = $this->cloudinary->get_images_from_folder($category, 1000, 'newest', 1);
+        $total_images = count($images);
+
+        // Apply sorting on the client side
+        switch ($sort) {
+            case 'random':
+                shuffle($images);
+                break;
+            case 'newest':
+                usort($images, function($a, $b) {
+                    return strtotime($b['created_at']) - strtotime($a['created_at']);
+                });
+                break;
+            case 'oldest':
+                usort($images, function($a, $b) {
+                    return strtotime($a['created_at']) - strtotime($b['created_at']);
+                });
+                break;
+            case 'name':
+                usort($images, function($a, $b) {
+                    return strcasecmp($a['filename'], $b['filename']);
+                });
+                break;
+        }
+
+        // Apply pagination after sorting
+        $offset = ($page - 1) * $per_page;
+        $images = array_slice($images, $offset, $per_page);
+
+        // Apply transformations to paginated results
+        foreach ($images as &$image) {
+            $image['url'] = $this->cloudinary->generate_image_url($image['public_id']);
+        }
 
         // Check if there are more images
-        $has_more = count($images) === $per_page;
-
-        // $debug->log('Gallery AJAX response', array(
-        //     'image_count' => count($images),
-        //     'total_images' => $total_images,
-        //     'has_more' => $has_more,
-        //     'images' => $images
-        // ), 'info');
+        $has_more = ($offset + $per_page) < $total_images;
 
         wp_send_json_success(array(
             'images' => $images,

@@ -54,13 +54,23 @@ jQuery(document).ready(function($) {
         
         // Handle sort changes
         $('.gallery-sort-select').on('change', function() {
-            currentSort = $(this).val();
-            currentPage = 1;
-            selectedImages.clear();
-            $('.gallery-item').removeClass('selected');
-            $('.selected-count').text('0');
-            localStorage.setItem('beautifulRescuesSelectedImages', JSON.stringify([]));
-            loadImages(true);
+            const $gallery = $(this).closest('.beautiful-rescues-gallery');
+            const sort = $(this).val();
+            const category = $gallery.data('category');
+            const perPage = parseInt($gallery.data('per-page'));
+            
+            // Update gallery data attribute
+            $gallery.data('sort', sort);
+            
+            // Reset page and clear existing images
+            $gallery.data('page', 1);
+            $gallery.find('.gallery-grid').empty();
+            
+            // Show loading overlay
+            $('.gallery-loading-overlay').addClass('active');
+            
+            // Load images with new sort
+            loadMoreImages($gallery, category, sort, 1, perPage);
         });
 
         // Handle load more
@@ -347,6 +357,52 @@ jQuery(document).ready(function($) {
     function updateModalNavigation() {
         $('.modal-nav-button[data-direction="-1"]').toggle(currentModalIndex > 0);
         $('.modal-nav-button[data-direction="1"]').toggle(currentModalIndex < modalImages.length - 1);
+    }
+
+    // Update loadMoreImages function to handle sorting
+    function loadMoreImages($gallery, category, sort, page, perPage) {
+        $.ajax({
+            url: beautifulRescuesGallery.ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'load_gallery_images',
+                category: category,
+                sort: sort,
+                page: page,
+                per_page: perPage,
+                nonce: beautifulRescuesGallery.nonce
+            },
+            success: function(response) {
+                if (response.success) {
+                    const images = response.data.images;
+                    const hasMore = response.data.has_more;
+                    const $grid = $gallery.find('.gallery-grid');
+                    
+                    // Append new images
+                    images.forEach(function(image) {
+                        $grid.append(createGalleryItem(image));
+                    });
+                    
+                    // Update page number
+                    $gallery.data('page', page + 1);
+                    
+                    // Show/hide load more button
+                    const $loadMoreButton = $gallery.find('.load-more-button');
+                    if (hasMore) {
+                        $loadMoreButton.show();
+                    } else {
+                        $loadMoreButton.hide();
+                    }
+                }
+            },
+            error: function() {
+                $gallery.find('.gallery-grid').append('<div class="gallery-error">Error loading images. Please try again.</div>');
+            },
+            complete: function() {
+                // Hide loading overlay
+                $('.gallery-loading-overlay').removeClass('active');
+            }
+        });
     }
 
     // Initialize the gallery

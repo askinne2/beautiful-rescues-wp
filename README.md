@@ -22,7 +22,7 @@ A WordPress plugin for managing rescue donations and displaying Cloudinary image
   - Image selection for donations
   - Zoom preview functionality
   - Sorting options (random, newest, oldest, name)
-  - Infinite scroll with "Load More" option
+  - Pagination via "Load More" option
 
 - **Donation Verification**
   - Secure file upload for verification documents
