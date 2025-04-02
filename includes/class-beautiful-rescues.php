@@ -245,10 +245,6 @@ class BR_Beautiful_Rescues {
         // Create an instance of the gallery shortcode class
         $gallery_shortcode = new BR_Gallery_Shortcode();
         add_shortcode('beautiful_rescues_gallery', array($gallery_shortcode, 'render_gallery'));
-        $debug->log('Registered gallery shortcode', array(
-            'shortcode' => 'beautiful_rescues_gallery',
-            'callback' => array($gallery_shortcode, 'render_gallery')
-        ), 'info');
     }
 
     /**

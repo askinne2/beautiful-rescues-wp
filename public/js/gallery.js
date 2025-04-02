@@ -19,6 +19,15 @@ jQuery(document).ready(function($) {
         currentCategory = gallery.data('category') || '';
         currentSort = gallery.data('sort') || 'random';
         currentPerPage = parseInt(gallery.data('per-page')) || 20;
+        const totalImages = parseInt(gallery.data('total-images')) || 0;
+
+        // Set initial hasMoreImages state
+        hasMoreImages = $('.gallery-grid .gallery-item').length < totalImages;
+        console.log('Initial state:', {
+            currentItems: $('.gallery-grid .gallery-item').length,
+            totalImages: totalImages,
+            hasMoreImages: hasMoreImages
+        });
 
         // Load existing selections from localStorage
         const storedImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]');
@@ -195,7 +204,7 @@ jQuery(document).ready(function($) {
                 
                 if (response.success && response.data.images.length > 0) {
                     const images = response.data.images;
-                    const totalImages = response.data.total_images;
+                    const totalImages = response.data.total_images || 0;
                     
                     // Add new images to grid
                     images.forEach(function(image) {
@@ -209,7 +218,7 @@ jQuery(document).ready(function($) {
                         }
                     });
                     
-                    // Update hasMoreImages flag
+                    // Update hasMoreImages flag based on total images count
                     hasMoreImages = $('.gallery-grid .gallery-item').length < totalImages;
                     
                     // Show/hide load more button

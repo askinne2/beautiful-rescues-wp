@@ -109,12 +109,14 @@ class BR_Gallery_Shortcode {
 
         // Pre-load initial images for immediate display
         $initial_images = $this->cloudinary->get_images_from_folder($atts['category'], intval($atts['per_page']), $atts['sort'], 1);
+        $total_images = $this->cloudinary->get_total_images_count($atts['category']);
         $initial_images_html = '';
         
-            // Apply transformations to each image
-    foreach ($initial_images as &$image) {
-        $image['url'] = $this->cloudinary->generate_image_url($image['public_id']);
-    }
+        // Apply transformations to each image
+        foreach ($initial_images as &$image) {
+            $image['url'] = $this->cloudinary->generate_image_url($image['public_id']);
+        }
+        
         if (!empty($initial_images)) {
             foreach ($initial_images as $image) {
                 if (empty($image['url'])) continue;
@@ -149,7 +151,8 @@ class BR_Gallery_Shortcode {
              data-max-width="<?php echo esc_attr($atts['max_width']); ?>"
              data-category="<?php echo esc_attr($atts['category']); ?>"
              data-sort="<?php echo esc_attr($atts['sort']); ?>"
-             data-per-page="<?php echo esc_attr($atts['per_page']); ?>">
+             data-per-page="<?php echo esc_attr($atts['per_page']); ?>"
+             data-total-images="<?php echo esc_attr($total_images); ?>">
             <!-- Gallery content -->
             <div class="gallery-controls">
                 <div class="gallery-sort">
@@ -165,13 +168,17 @@ class BR_Gallery_Shortcode {
                     <div class="gallery-loading">Loading images from Cloudinary...</div>
                 <?php endif; ?>
             </div>
+            <?php if ($total_images > count($initial_images)): ?>
+                <button class="load-more-button"><?php _e('Load More', 'beautiful-rescues'); ?></button>
+            <?php endif; ?>
         </div>
         <?php
         $output = ob_get_clean();
         $debug->log('Gallery shortcode rendered', array(
             'output_length' => strlen($output),
             'has_content' => !empty($output),
-            'initial_images_count' => count($initial_images)
+            'initial_images_count' => count($initial_images),
+            'total_images' => $total_images
         ), 'info');
         return $output;
     }
@@ -196,18 +203,21 @@ class BR_Gallery_Shortcode {
         ), 'info');
 
         $images = $this->cloudinary->get_images_from_folder($category, $per_page, $sort, $page);
+        $total_images = $this->cloudinary->get_total_images_count($category);
 
         // Check if there are more images
         $has_more = count($images) === $per_page;
 
         $debug->log('Gallery AJAX response', array(
             'image_count' => count($images),
+            'total_images' => $total_images,
             'has_more' => $has_more,
             'images' => $images
         ), 'info');
 
         wp_send_json_success(array(
             'images' => $images,
+            'total_images' => $total_images,
             'has_more' => $has_more
         ));
     }
