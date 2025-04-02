@@ -123,17 +123,24 @@ class BR_Gallery_Shortcode {
                 
                 $imageUrl = $image['url'];
                 $initial_images_html .= '
-                    <div class="gallery-item" data-public-id="' . esc_attr($image['public_id']) . '">
-                        <div class="gallery-item-image">
-                            <img src="' . esc_url($imageUrl) . '" alt="' . esc_attr($image['filename'] ?? 'Gallery image') . '" data-url="' . esc_url($imageUrl) . '">
-                            <div class="gallery-item-overlay">
-                                <div class="gallery-item-actions">
-                                    <button class="gallery-item-button select-button">Select</button>
-                                    <button class="gallery-item-button zoom-button">Zoom</button>
-                                </div>
-                            </div>
+                <div class="gallery-item" data-public-id="' . esc_attr($image['public_id']) . '">
+                    <div class="gallery-item-image">
+                        <img src="' . esc_url($imageUrl) . '" alt="' . esc_attr($image['filename'] ?? 'Gallery image') . '" data-url="' . esc_url($imageUrl) . '">
+                        <div class="gallery-item-actions">
+                            <button class="gallery-item-button select-button" aria-label="Select image">
+                                <svg class="radio-icon" viewBox="0 0 24 24" width="24" height="24">
+                                    <circle class="radio-circle" cx="12" cy="12" r="10"/>
+                                    <circle class="radio-dot" cx="12" cy="12" r="4"/>
+                                </svg>
+                            </button>
+                            <button class="gallery-item-button zoom-button" aria-label="Zoom image">
+                                <svg class="zoom-icon" viewBox="0 0 24 24" width="24" height="24">
+                                    <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                                </svg>
+                            </button>
                         </div>
                     </div>
+                </div>
                 ';
             }
         }

@@ -125,9 +125,15 @@
             selectedImages: selectedImages
         });
 
-        cartCount.text(count);
+        if (cartCount.length) {
+            cartCount.text(count);
+        }
         updateCartVisibility(count > 0);
     }
+
+    // Initialize cart visibility and count immediately
+    updateCartCount();
+    updateSelectedImagesPreview();
 
     // Function to open donation modal
     function openDonationModal() {
@@ -219,9 +225,6 @@
             updateSelectedImagesPreview();
         }
     });
-
-    // Initialize cart visibility
-    updateCartVisibility(selectedImages.length > 0);
 
     // Close modal on escape key
     $(document).on('keydown', function(e) {

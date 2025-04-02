@@ -47,7 +47,6 @@ jQuery(document).ready(function($) {
             const imageId = $(this).data('public-id');
             if (selectedImages.has(imageId)) {
                 $(this).addClass('selected');
-                $(this).find('.select-button').text(beautifulRescuesGallery.i18n.selected);
             }
         });
         $('.selected-count').text(selectedImages.size);
@@ -104,11 +103,9 @@ jQuery(document).ready(function($) {
             if (selectedImages.has(imageId)) {
                 selectedImages.delete(imageId);
                 item.removeClass('selected');
-                $(this).text(beautifulRescuesGallery.i18n.select);
             } else {
                 selectedImages.add(imageId);
                 item.addClass('selected');
-                $(this).text(beautifulRescuesGallery.i18n.selected);
             }
             
             $('.selected-count').text(selectedImages.size);
@@ -152,7 +149,6 @@ jQuery(document).ready(function($) {
         $('.clear-selection-button').on('click', function() {
             selectedImages.clear();
             $('.gallery-item').removeClass('selected');
-            $('.select-button').text(beautifulRescuesGallery.i18n.select);
             $('.selected-count').text('0');
             
             // Clear localStorage
@@ -252,7 +248,6 @@ jQuery(document).ready(function($) {
                         // Restore selection state for new images
                         if (selectedImages.has(image.id)) {
                             $(item).addClass('selected');
-                            $(item).find('.select-button').text(beautifulRescuesGallery.i18n.selected);
                         }
                     });
                     
@@ -304,11 +299,18 @@ jQuery(document).ready(function($) {
                          data-width="${imageWidth}" 
                          data-height="${imageHeight}"
                          data-url="${imageUrl}">
-                </div>
-                <div class="gallery-item-overlay">
                     <div class="gallery-item-actions">
-                        <button class="gallery-item-button select-button">${beautifulRescuesGallery.i18n.select}</button>
-                        <button class="gallery-item-button zoom-button">${beautifulRescuesGallery.i18n.zoom}</button>
+                        <button class="gallery-item-button select-button" aria-label="Select image">
+                            <svg class="radio-icon" viewBox="0 0 24 24" width="24" height="24">
+                                <circle class="radio-circle" cx="12" cy="12" r="10"/>
+                                <circle class="radio-dot" cx="12" cy="12" r="4"/>
+                            </svg>
+                        </button>
+                        <button class="gallery-item-button zoom-button" aria-label="Zoom image">
+                            <svg class="zoom-icon" viewBox="0 0 24 24" width="24" height="24">
+                                <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                            </svg>
+                        </button>
                     </div>
                 </div>
             </div>
