@@ -159,7 +159,6 @@ class BR_Gallery_Shortcode {
                     </select>
                 </div>
                 <div class="gallery-actions">
-                    <button class="load-more-button"><?php _e('Load More', 'beautiful-rescues'); ?></button>
                     <button class="verify-donation-button"><?php _e('Verify Donation', 'beautiful-rescues'); ?></button>
                 </div>
             </div>

@@ -28,10 +28,14 @@
     const modalClose = modal.find('.modal-close');
     const modalPrev = modal.find('.modal-prev');
     const modalNext = modal.find('.modal-next');
-    const loadMoreBtn = gallery.find('.load-more-button');
-    const verifyDonationBtn = gallery.find('.verify-donation-button');
-    const sortSelect = gallery.find('.gallery-sort-select'); // Fixed selector
+    const sortSelect = gallery.find('.gallery-sort-select');
     const galleryGrid = gallery.find('.gallery-grid');
+    const selectedImagesGrid = $('.selected-images-grid');
+    const donationForm = $('.donation-verification-form');
+    
+    // Create and append load more button after the grid
+    const loadMoreBtn = $('<button class="load-more-button">Load More</button>').insertAfter(galleryGrid);
+    const verifyDonationBtn = gallery.find('.verify-donation-button');
     
     logDebug('Gallery components', {
         'galleryFound': gallery.length > 0,
@@ -261,6 +265,7 @@
             return;
         }
         isLoading = true;
+        loadMoreBtn.prop('disabled', true).text('Loading...');
         
         console.log('Loading images with params:', {
             category: currentCategory,
@@ -283,15 +288,22 @@
             success: function(response) {
                 console.log('Load images response:', response);
                 if (response.success) {
-                    appendImages(response.data.images);
-                    hasMoreImages = response.data.has_more;
-                    if (!hasMoreImages) {
+                    if (response.data.images && response.data.images.length > 0) {
+                        appendImages(response.data.images);
+                        hasMoreImages = response.data.has_more;
+                        if (!hasMoreImages) {
+                            loadMoreBtn.hide();
+                        }
+                        // Rebind event handlers after loading new images
+                        bindEventHandlers();
+                    } else {
+                        console.log('No more images to load');
                         loadMoreBtn.hide();
+                        hasMoreImages = false;
                     }
-                    // Rebind event handlers after loading new images
-                    bindEventHandlers();
                 } else {
                     console.error('Load images failed:', response);
+                    alert('Failed to load more images. Please try again.');
                 }
                 isLoading = false;
             },
@@ -301,7 +313,11 @@
                     error: error,
                     response: xhr.responseText
                 });
+                alert('Failed to load more images. Please try again.');
                 isLoading = false;
+            },
+            complete: function() {
+                loadMoreBtn.prop('disabled', false).text('Load More');
             }
         });
     }

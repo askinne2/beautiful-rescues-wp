@@ -187,16 +187,34 @@ class BR_Cloudinary_Integration {
             return [];
         }
 
-        // Rate limiting
-        $transient_key = 'br_gallery_' . md5($folder . $sort . $page);
-        $cached_result = array(); //get_transient($transient_key);
+        // Create a transient key for the full category results
+        $transient_key = 'br_gallery_full_' . md5($folder . $sort);
+        $cached_result = get_transient($transient_key);
         
-        if ($cached_result !== false && !empty($cached_result)) {
+        if ($cached_result !== false) {
             $this->debug->log('Using cached results', [
                 'folder' => $folder,
-                'count' => count($cached_result)
+                'total_count' => count($cached_result),
+                'page' => $page,
+                'limit' => $limit
             ], 'info');
-            return $cached_result;
+            
+            // Calculate pagination from cached results
+            $offset = ($page - 1) * $limit;
+            $paginated_results = array_slice($cached_result, $offset, $limit);
+            
+            // Apply transformations to paginated results
+            foreach ($paginated_results as &$image) {
+                $image['url'] = $this->generate_image_url($image['public_id']);
+            }
+            
+            $this->debug->log('Returning paginated results from cache', [
+                'count' => count($paginated_results),
+                'offset' => $offset,
+                'limit' => $limit
+            ], 'info');
+            
+            return $paginated_results;
         }
 
         try {
@@ -208,17 +226,9 @@ class BR_Cloudinary_Integration {
             if ($folder) {
                 // If it's a cat folder, use the Cats/ prefix
                 if (in_array($folder, $this->cat_folders)) {
-                    // Add wildcard to include subfolders
                     $search_expression .= " AND folder:Cats/{$folder}/*";
-                    $this->debug->log('Searching specific cat folder', [
-                        'folder' => $folder,
-                        'expression' => $search_expression
-                    ], 'info');
                 } else if ($folder === 'Cats') {
                     $search_expression .= " AND folder:Cats/*";
-                    $this->debug->log('Searching all cat folders', [
-                        'expression' => $search_expression
-                    ], 'info');
                 } else {
                     $search_expression .= " AND folder:{$folder}/*";
                 }
@@ -245,25 +255,14 @@ class BR_Cloudinary_Integration {
 
             $this->debug->log('Executing Cloudinary search', [
                 'expression' => $search_expression,
-                'max_results' => $folder ? $limit : 200,
-                'folder' => $folder
+                'folder' => $folder,
+                'sort' => $sort
             ], 'info');
 
-            // Calculate pagination
-            $offset = ($page - 1) * $limit;
-            
-            // Get more results for better randomization when no category is selected
-            $max_results = $folder ? $limit : 200;
-
+            // Get all results for the category
             $result = $searchApi->expression($search_expression)
-                ->maxResults($max_results)
+                ->maxResults(1000) // Adjust this based on your needs
                 ->execute();
-
-            $this->debug->log('Search results received', [
-                'total_count' => count($result['resources'] ?? []),
-                'expression_used' => $search_expression,
-                'folder' => $folder
-            ], 'info');
 
             $resources = $result['resources'] ?? [];
 
@@ -283,7 +282,7 @@ class BR_Cloudinary_Integration {
 
                 // Get random images from each category
                 $categories = array_keys($images_by_category);
-                $images_per_category = ceil($limit / count($categories));
+                $images_per_category = ceil(count($resources) / count($categories));
                 
                 $selected_images = array();
                 foreach ($categories as $category) {
@@ -295,24 +294,36 @@ class BR_Cloudinary_Integration {
                     );
                 }
 
-                // Final shuffle and limit
+                // Final shuffle
                 shuffle($selected_images);
-                $resources = array_slice($selected_images, 0, $limit);
+                $resources = $selected_images;
             }
 
-            // Apply pagination
-            $resources = array_slice($resources, $offset, $limit);
-
-            // Cache the results for 5 minutes
+            // Cache the full results for 5 minutes
             set_transient($transient_key, $resources, 5 * MINUTE_IN_SECONDS);
 
-            $this->debug->log('Returning search results', [
-                'count' => count($resources),
+            $this->debug->log('Cached full results', [
+                'total_count' => count($resources),
                 'folder' => $folder,
                 'sort' => $sort
             ], 'info');
 
-            return $resources;
+            // Return paginated results
+            $offset = ($page - 1) * $limit;
+            $paginated_results = array_slice($resources, $offset, $limit);
+
+            // Apply transformations to paginated results
+            foreach ($paginated_results as &$image) {
+                $image['url'] = $this->generate_image_url($image['public_id']);
+            }
+
+            $this->debug->log('Returning paginated results', [
+                'count' => count($paginated_results),
+                'offset' => $offset,
+                'limit' => $limit
+            ], 'info');
+
+            return $paginated_results;
         } catch (Exception $e) {
             $this->debug->log('Cloudinary search error', [
                 'error' => $e->getMessage(),

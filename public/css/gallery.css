@@ -40,21 +40,42 @@
 }
 
 .load-more-button {
+    display: block;
+    margin: 2rem auto;
+    padding: 0.75rem 2rem;
     background: #f0f0f0;
     color: #333;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    width: auto;
+    min-width: 200px;
 }
 
 .load-more-button:hover {
     background: #e0e0e0;
+    transform: translateY(-1px);
+}
+
+.load-more-button:active {
+    transform: translateY(0);
+}
+
+.load-more-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
 }
 
 .verify-donation-button {
-    background: #4CAF50;
-    color: white;
+    background: var(--e-global-color-primary, #F0759E);
+    color: var(--e-global-color-background, #ffffff);
 }
 
 .verify-donation-button:hover {
-    background: #45a049;
+    background: var(--e-global-color-secondary, #E04B7C);
 }
 
 /* Gallery Grid */
@@ -134,13 +155,13 @@
 }
 
 .gallery-item.selected .gallery-item-overlay {
-    background-color: rgba(76, 175, 80, 0.3);
+    background-color: rgba(240, 117, 158, 0.3);
     opacity: 1;
 }
 
 .gallery-item.selected .select-button {
-    background-color: #4CAF50;
-    color: white;
+    background-color: var(--e-global-color-primary, #F0759E);
+    color: var(--e-global-color-background, #ffffff);
 }
 
 .gallery-item-actions {
@@ -164,12 +185,12 @@
 }
 
 .gallery-item-button.select-button {
-    background: #4CAF50;
-    color: white;
+    background: var(--e-global-color-primary, #F0759E);
+    color: var(--e-global-color-background, #ffffff);
 }
 
 .gallery-item-button.select-button:hover {
-    background: #45a049;
+    background: var(--e-global-color-secondary, #E04B7C);
 }
 
 .gallery-item-button.zoom-button {
@@ -179,6 +200,7 @@
 
 .gallery-item-button.zoom-button:hover {
     background: #f0f0f0;
+    color: #333;
 }
 
 .gallery-caption {
