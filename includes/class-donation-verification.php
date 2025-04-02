@@ -248,10 +248,10 @@ class BR_Donation_Verification {
 
         // Return success response
         wp_send_json_success(array(
-            'message' => 'Your verification has been submitted successfully.',
-            'redirect_url' => isset($_POST['source']) && $_POST['source'] === 'checkout' 
-                ? home_url('/thank-you/') 
-                : null
+            'message' => 'Your verification has been submitted successfully.'
+                // 'redirect_url' => isset($_POST['source']) && $_POST['source'] === 'checkout' 
+                //     ? home_url('/thank-you/') 
+                // : null
         ));
     }
 

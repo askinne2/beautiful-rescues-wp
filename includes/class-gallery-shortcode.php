@@ -172,6 +172,21 @@ class BR_Gallery_Shortcode {
                 <button class="load-more-button"><?php _e('Load More', 'beautiful-rescues'); ?></button>
             <?php endif; ?>
         </div>
+
+        <!-- Gallery Modal -->
+        <div class="gallery-modal">
+            <div class="modal-content">
+                <button class="modal-close">&times;</button>
+                <div class="modal-image-container">
+                    <img class="modal-image" src="" alt="">
+                    <div class="modal-caption"></div>
+                </div>
+                <div class="modal-navigation">
+                    <button class="modal-nav-button" data-direction="-1"><?php _e('Previous', 'beautiful-rescues'); ?></button>
+                    <button class="modal-nav-button" data-direction="1"><?php _e('Next', 'beautiful-rescues'); ?></button>
+                </div>
+            </div>
+        </div>
         <?php
         $output = ob_get_clean();
         $debug->log('Gallery shortcode rendered', array(
@@ -208,12 +223,12 @@ class BR_Gallery_Shortcode {
         // Check if there are more images
         $has_more = count($images) === $per_page;
 
-        $debug->log('Gallery AJAX response', array(
-            'image_count' => count($images),
-            'total_images' => $total_images,
-            'has_more' => $has_more,
-            'images' => $images
-        ), 'info');
+        // $debug->log('Gallery AJAX response', array(
+        //     'image_count' => count($images),
+        //     'total_images' => $total_images,
+        //     'has_more' => $has_more,
+        //     'images' => $images
+        // ), 'info');
 
         wp_send_json_success(array(
             'images' => $images,

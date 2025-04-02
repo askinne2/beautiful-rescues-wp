@@ -14,6 +14,11 @@ jQuery(document).ready(function($) {
     function initGallery() {
         console.log('Initializing gallery');
         
+        // Add loading overlay to the page
+        if (!$('.gallery-loading-overlay').length) {
+            $('body').append('<div class="gallery-loading-overlay"><div class="gallery-spinner"></div></div>');
+        }
+        
         // Get initial data from data attributes
         const gallery = $('.beautiful-rescues-gallery');
         currentCategory = gallery.data('category') || '';
@@ -59,7 +64,7 @@ jQuery(document).ready(function($) {
         });
 
         // Handle load more
-        $('.load-more-button').on('click', function() {
+        $(document).on('click', '.load-more-button', function() {
             if (!isLoading && hasMoreImages) {
                 currentPage++;
                 loadImages(false);
@@ -159,19 +164,41 @@ jQuery(document).ready(function($) {
             openModal(imageUrl, caption);
         });
 
-        // Handle modal navigation
-        $('.modal-nav-button').on('click', function() {
-            const direction = $(this).data('direction');
+        // Add modal event handlers
+        const $modal = $('.gallery-modal');
+        const $modalClose = $modal.find('.modal-close');
+        const $modalNavButtons = $modal.find('.modal-nav-button');
+
+        // Close modal when clicking close button or outside the modal
+        $modalClose.on('click', function() {
+            $modal.fadeOut(300);
+            $('body').removeClass('modal-open');
+        });
+
+        $modal.on('click', function(e) {
+            if (e.target === this) {
+                $modal.fadeOut(300);
+                $('body').removeClass('modal-open');
+            }
+        });
+
+        // Handle navigation
+        $modalNavButtons.on('click', function() {
+            const direction = parseInt($(this).data('direction'));
             navigateModal(direction);
         });
 
-        // Handle modal close
-        $('.modal-close').on('click', closeModal);
-        
-        // Close modal on escape key
+        // Handle keyboard navigation
         $(document).on('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeModal();
+            if (!$modal.is(':visible')) return;
+            
+            if (e.key === 'ArrowLeft') {
+                navigateModal(-1);
+            } else if (e.key === 'ArrowRight') {
+                navigateModal(1);
+            } else if (e.key === 'Escape') {
+                $modal.fadeOut(300);
+                $('body').removeClass('modal-open');
             }
         });
     }
@@ -181,8 +208,9 @@ jQuery(document).ready(function($) {
         if (isLoading) return;
         
         isLoading = true;
-        const loadMoreBtn = $('.load-more-button');
-        loadMoreBtn.prop('disabled', true).text('Loading...');
+        const $loadMoreBtn = $('.load-more-button');
+        $loadMoreBtn.prop('disabled', true);
+        $('.gallery-loading-overlay').addClass('active');
         
         if (reset) {
             $('.gallery-grid').empty();
@@ -220,11 +248,13 @@ jQuery(document).ready(function($) {
                     
                     // Update hasMoreImages flag based on total images count
                     hasMoreImages = $('.gallery-grid .gallery-item').length < totalImages;
+                    console.log('hasMoreImages:', hasMoreImages);
                     
                     // Show/hide load more button
                     if (hasMoreImages) {
                         if (!$('.load-more-button').length) {
-                            $('.gallery-grid').after('<button class="load-more-button">' + beautifulRescuesGallery.i18n.loadMore + '</button>');
+                            const $newBtn = $('<button class="load-more-button">' + beautifulRescuesGallery.i18n.loadMore + '</button>');
+                            $('.gallery-grid').after($newBtn);
                         }
                         $('.load-more-button').show();
                     } else {
@@ -241,7 +271,8 @@ jQuery(document).ready(function($) {
             },
             complete: function() {
                 isLoading = false;
-                loadMoreBtn.prop('disabled', false).text(beautifulRescuesGallery.i18n.loadMore);
+                $('.load-more-button').prop('disabled', false);
+                $('.gallery-loading-overlay').removeClass('active');
             }
         });
     }

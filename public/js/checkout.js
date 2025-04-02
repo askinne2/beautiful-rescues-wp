@@ -138,6 +138,7 @@
             const donationForm = $('#checkout-verification-form');
             const messages = $('#form-messages');
             const submitButton = donationForm.find('button[type="submit"]');
+            const checkoutColumn = donationForm.closest('.checkout-column');
             
             // Clear previous messages
             messages.removeClass('error success').empty();
@@ -197,9 +198,14 @@
                 return;
             }
 
+            // Set submitting state
             donationForm.data('submitting', true);
             donationForm.addClass('submitting');
-            submitButton.prop('disabled', true).text('Processing...');
+            submitButton.prop('disabled', true);
+            
+            // Show loading overlay
+            console.log('Showing loading overlay');
+            $('.checkout-loading-overlay').addClass('active');
 
             const formData = new FormData(donationForm[0]);
             
@@ -228,13 +234,27 @@
                     console.log('Form submission response:', response);
                     
                     if (response.success) {
-                        showSuccess(beautifulRescuesCheckout.i18n.thankYou);
+                        console.log('Submission successful, showing success message');
+                        // Hide the form and show success message
+                        const successHtml = `
+                            <div class="checkout-success">
+                                <h2>${beautifulRescuesCheckout.i18n.thankYou}</h2>
+                                <p>${beautifulRescuesCheckout.i18n.verificationReceived}</p>
+                                <p>Debug: Loading overlay should be hidden</p>
+                            </div>
+                        `;
+                        checkoutColumn.html(successHtml);
+                        
+                        // Handle redirect if URL is provided
                         if (response.data.redirect_url) {
-                            setTimeout(() => {
-                                window.location.href = response.data.redirect_url;
-                            }, 2000);
+                            console.log('Redirect URL provided:', response.data.redirect_url);
+                            // For debugging, we'll log the redirect but not execute it
+                            // setTimeout(() => {
+                            //     window.location.href = response.data.redirect_url;
+                            // }, 2000);
                         }
                     } else {
+                        console.error('Submission failed:', response.data?.message);
                         showError(response.data?.message || beautifulRescuesCheckout.i18n.error);
                     }
                 },
@@ -243,9 +263,18 @@
                     showError(beautifulRescuesCheckout.i18n.error);
                 },
                 complete: function() {
+                    console.log('Form submission complete, hiding loading overlay');
+                    console.log('Loading overlay element:', $('.checkout-loading-overlay').length);
+                    console.log('Loading overlay classes:', $('.checkout-loading-overlay').attr('class'));
+                    
+                    // Hide loading overlay
+                    $('.checkout-loading-overlay').removeClass('active');
+                    
+                    console.log('Loading overlay classes after removal:', $('.checkout-loading-overlay').attr('class'));
+                    
                     donationForm.removeClass('submitting');
                     donationForm.data('submitting', false);
-                    submitButton.prop('disabled', false).text(beautifulRescuesCheckout.i18n.completeCheckout);
+                    submitButton.prop('disabled', false);
                 }
             });
         }

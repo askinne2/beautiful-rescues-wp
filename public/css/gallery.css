@@ -248,11 +248,12 @@
     right: 1rem;
     background: none;
     border: none;
-    color: white;
+    color: #333;
     font-size: 2rem;
     cursor: pointer;
     padding: 0.5rem;
     line-height: 1;
+    z-index: 1001;
 }
 
 .modal-navigation {
@@ -263,6 +264,7 @@
     display: flex;
     justify-content: center;
     gap: 1rem;
+    z-index: 1001;
 }
 
 .modal-nav-button {
@@ -270,7 +272,7 @@
     background: rgba(255,255,255,0.2);
     border: none;
     border-radius: 4px;
-    color: white;
+    color: #333;
     cursor: pointer;
     transition: background 0.2s ease;
 }
@@ -377,4 +379,36 @@ body.modal-open {
     -moz-context-menu: none;
     -ms-context-menu: none;
     context-menu: none;
+}
+
+/* Loading Overlay */
+.gallery-loading-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.gallery-loading-overlay.active {
+    display: flex;
+}
+
+.gallery-spinner {
+    width: 50px;
+    height: 50px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid var(--e-global-color-primary, #F0759E);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 } 

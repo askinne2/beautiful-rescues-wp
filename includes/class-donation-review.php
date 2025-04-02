@@ -267,12 +267,11 @@ class BR_Donation_Review {
                     'title' => get_the_title(),
                     'date' => get_the_date(),
                     'time' => get_the_time('g:i A'),
-                    'donor_name' => sprintf(
-                        '%s %s',
-                        get_post_meta($post_id, '_first_name', true),
-                        get_post_meta($post_id, '_last_name', true)
-                    ),
-                    'email' => get_post_meta($post_id, '_email', true),
+                    '_first_name' => get_post_meta($post_id, '_first_name', true),
+                    '_last_name' => get_post_meta($post_id, '_last_name', true),
+                    '_email' => get_post_meta($post_id, '_email', true),
+                    '_phone' => get_post_meta($post_id, '_phone', true),
+                    '_message' => get_post_meta($post_id, '_message', true),
                     'status' => get_post_meta($post_id, '_status', true) ?: 'pending',
                     'verification_file' => get_post_meta($post_id, '_verification_file', true),
                     'selected_images' => get_post_meta($post_id, '_selected_images', true)
@@ -336,10 +335,11 @@ class BR_Donation_Review {
             'id' => $donation_id,
             'title' => $donation->post_title,
             'date' => get_the_date('F j, Y', $donation),
-            'donor_name' => get_post_meta($donation_id, '_first_name', true) . ' ' . get_post_meta($donation_id, '_last_name', true),
-            'donor_email' => get_post_meta($donation_id, '_email', true),
-            'donor_phone' => get_post_meta($donation_id, '_phone', true),
-            'donor_message' => get_post_meta($donation_id, '_message', true),
+            '_first_name' => get_post_meta($donation_id, '_first_name', true),
+            '_last_name' => get_post_meta($donation_id, '_last_name', true),
+            '_email' => get_post_meta($donation_id, '_email', true),
+            '_phone' => get_post_meta($donation_id, '_phone', true),
+            '_message' => get_post_meta($donation_id, '_message', true),
             'verification_file' => array(
                 'url' => $verification_file_url,
                 'type' => wp_check_filetype($verification_file)['type']

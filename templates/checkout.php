@@ -51,7 +51,7 @@ while (have_posts()) :
                 </div>
 
                 <!-- Donation Verification Form -->
-                <div class="checkout-column">
+                <div class="checkout-column checkout-verification-form">
                     <?php 
                     // Get the donation verification instance and render the form
                     $verification = BR_Donation_Verification::get_instance();
@@ -65,6 +65,11 @@ while (have_posts()) :
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="checkout-loading-overlay">
+        <div class="checkout-spinner"></div>
     </div>
     <?php
 endwhile;

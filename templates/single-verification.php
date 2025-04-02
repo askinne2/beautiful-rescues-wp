@@ -83,7 +83,7 @@ while (have_posts()) :
 
     <div class="wrap verification-details">
         <div class="verification-header">
-            <h1><?php _e('Your Donation Verification', 'beautiful-rescues'); ?></h1>
+            <h1><?php _e('Donation Verification', 'beautiful-rescues'); ?></h1>
             <div class="verification-status <?php echo esc_attr($status_info['class']); ?>">
                 <?php echo esc_html($status_info['text']); ?>
             </div>

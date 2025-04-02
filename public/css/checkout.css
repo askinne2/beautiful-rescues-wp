@@ -277,4 +277,70 @@
 
 .empty-cart-notice .button:hover {
     background: var(--e-global-color-secondary, #E04B7C);
+}
+
+/* Loading Overlay */
+.checkout-loading-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.checkout-loading-overlay.active {
+    display: flex;
+}
+
+.checkout-spinner {
+    width: 50px;
+    height: 50px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid var(--e-global-color-primary, #F0759E);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Success state */
+.checkout-success {
+    text-align: center;
+    padding: 2rem;
+    background: #f8f8f8;
+    border-radius: 8px;
+    margin: 0;
+}
+
+.checkout-success h2 {
+    color: var(--e-global-color-primary, #F0759E);
+    margin-bottom: 1rem;
+}
+
+.checkout-success p {
+    color: #666;
+    margin-bottom: 1.5rem;
+}
+
+.checkout-success .button {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    background: var(--e-global-color-primary, #F0759E);
+    color: var(--e-global-color-background, #ffffff);
+    text-decoration: none;
+    border-radius: 4px;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+}
+
+.checkout-success .button:hover {
+    background: var(--e-global-color-secondary, #E04B7C);
 } 

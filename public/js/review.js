@@ -23,11 +23,22 @@ jQuery(document).ready(function($) {
         loadDonations();
     });
 
-    searchFilter.on('input', debounce(function() {
-        searchTerm = $(this).val();
-        currentPage = 1;
-        loadDonations();
-    }, 500));
+    // Update search filter handler with defensive checks
+    if (searchFilter.length) {
+        searchFilter.on('input', debounce(function() {
+            try {
+                const val = searchFilter.val();
+                searchTerm = val ? String(val).trim() : '';
+                currentPage = 1;
+                loadDonations();
+            } catch (error) {
+                console.error('Error in search filter:', error);
+                searchTerm = '';
+                currentPage = 1;
+                loadDonations();
+            }
+        }, 500));
+    }
 
     // Handle donation item click
     donationList.on('click', '.donation-item', function() {
@@ -45,18 +56,18 @@ jQuery(document).ready(function($) {
         }
     });
 
-    // Handle verification actions
-    detailsPanel.on('click', '.verify-button', function() {
-        if (selectedDonationId) {
-            updateDonationStatus(selectedDonationId, 'verified');
-        }
-    });
+    // // Handle verification actions
+    // detailsPanel.on('click', '.verify-button', function() {
+    //     if (selectedDonationId) {
+    //         updateDonationStatus(selectedDonationId, 'verified');
+    //     }
+    // });
 
-    detailsPanel.on('click', '.reject-button', function() {
-        if (selectedDonationId) {
-            updateDonationStatus(selectedDonationId, 'rejected');
-        }
-    });
+    // detailsPanel.on('click', '.reject-button', function() {
+    //     if (selectedDonationId) {
+    //         updateDonationStatus(selectedDonationId, 'rejected');
+    //     }
+    // });
 
     // Load donations with filters and pagination
     function loadDonations() {
@@ -146,21 +157,23 @@ jQuery(document).ready(function($) {
                     loadDonationDetails(donationId);
                 } else {
                     detailsPanel.find('.donation-actions').html(
-                        '<div class="error">Error updating status: ' + response.data + '</div>' +
-                        '<div class="donation-actions">' +
-                        '<button class="verify-button">Verify</button>' +
-                        '<button class="reject-button">Reject</button>' +
-                        '</div>'
+                        '<div class="error">Error updating status: ' + response.data + '</div>' 
+                        // +
+                        // '<div class="donation-actions">' +
+                        // '<button class="verify-button">Verify</button>' +
+                        // '<button class="reject-button">Reject</button>' +
+                        // '</div>'
                     );
                 }
             },
             error: function() {
                 detailsPanel.find('.donation-actions').html(
-                    '<div class="error">Failed to update status. Please try again.</div>' +
-                    '<div class="donation-actions">' +
-                    '<button class="verify-button">Verify</button>' +
-                    '<button class="reject-button">Reject</button>' +
-                    '</div>'
+                    '<div class="error">Failed to update status. Please try again.</div>' 
+                    // +
+                    // '<div class="donation-actions">' +
+                    // '<button class="verify-button">Verify</button>' +
+                    // '<button class="reject-button">Reject</button>' +
+                    // '</div>'
                 );
             }
         });
@@ -176,9 +189,11 @@ jQuery(document).ready(function($) {
         const html = donations.map(donation => `
             <div class="donation-item status-${donation.status}" data-id="${donation.id}">
                 <div class="donation-info">
-                    <strong>${donation.donor_name}</strong>
-                    <div>Submitted: ${donation.date} ${donation.time}</div>
-                    <div>Status: ${donation.status}</div>
+                    <h3>${donation._first_name} ${donation._last_name}</h3>
+                    <p class="donor-info">${donation._email}</p>
+                    <p class="donor-info">${donation._phone}</p>
+                    <div class="donation-date">Submitted: ${donation.date} ${donation.time}</div>
+                    <div class="donation-status">Status: <strong>${donation.status}</strong></div>
                 </div>
                 <div class="quick-actions">
                     <button class="verify-button" data-id="${donation.id}">Verify</button>
@@ -204,12 +219,12 @@ jQuery(document).ready(function($) {
             <div class="donor-info">
                 <h3>Donor Information</h3>
                 <div class="donor-details">
-                    <p><strong>Name:</strong> ${donation.donor_name}</p>
-                    <p><strong>Email:</strong> ${donation.donor_email}</p>
-                    <p><strong>Phone:</strong> ${donation.donor_phone}</p>
-                    <p><strong>Date:</strong> ${donation.date}</p>
-                    <p><strong>Status:</strong> ${donation.status}</p>
-                    ${donation.donor_message ? `<p><strong>Message:</strong> ${donation.donor_message}</p>` : ''}
+                    <div class="donation-details">
+                        <h3>${donation._first_name} ${donation._last_name}</h3>
+                        <h3>${donation._email}</h3>
+                        <h3>${donation._phone}</h3>
+                        <p>${donation._message || 'No message provided'}</p>
+                    </div>
                 </div>
             </div>
 
@@ -225,10 +240,10 @@ jQuery(document).ready(function($) {
                 </div>
             </div>
 
-            <div class="donation-actions">
+            <!--div class="donation-actions">
                 <button class="verify-button">Verify</button>
                 <button class="reject-button">Reject</button>
-            </div>
+            </div-->
         `;
 
         detailsPanel.removeClass('empty').html(html);
@@ -255,14 +270,20 @@ jQuery(document).ready(function($) {
             return '<p>No images selected</p>';
         }
 
-        return images.map(image => `
-            <div class="selected-image">
-                <img src="${image.url}" alt="${image.title}">
-                <div class="image-info">
-                    <p>${image.title}</p>
+        return images.map(image => {
+            // Parse the title from the URL
+            const urlParts = image.url.split('/');
+            const title = urlParts[urlParts.length - 2] || 'Beautiful Rescue Kitty';
+            
+            return `
+                <div class="selected-image">
+                    <img src="${image.url}" alt="${title}">
+                    <div class="image-info">
+                        <p>${title}</p>
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     // Render pagination
@@ -306,10 +327,11 @@ jQuery(document).ready(function($) {
     // Utility function for debouncing
     function debounce(func, wait) {
         let timeout;
-        return function executedFunction(...args) {
+        return function(...args) {
+            const context = this;
             const later = () => {
                 clearTimeout(timeout);
-                func(...args);
+                func.apply(context, args);
             };
             clearTimeout(timeout);
             timeout = setTimeout(later, wait);
