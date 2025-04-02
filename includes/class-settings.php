@@ -74,6 +74,21 @@ class BR_Settings {
         );
 
         add_settings_section(
+            'email_settings',
+            'Email Settings',
+            array($this, 'render_email_section'),
+            'beautiful-rescues'
+        );
+
+        add_settings_field(
+            'verification_email',
+            'Verification Email Address',
+            array($this, 'render_verification_email_field'),
+            'beautiful-rescues',
+            'email_settings'
+        );
+
+        add_settings_section(
             'debug_settings',
             'Debug Settings',
             array($this, 'render_debug_section'),
@@ -84,6 +99,14 @@ class BR_Settings {
             'enable_debug',
             'Enable Debug Mode',
             array($this, 'render_enable_debug_field'),
+            'beautiful-rescues',
+            'debug_settings'
+        );
+
+        add_settings_field(
+            'enable_browser_debug',
+            'Enable Browser Console Logging',
+            array($this, 'render_enable_browser_debug_field'),
             'beautiful-rescues',
             'debug_settings'
         );
@@ -124,6 +147,10 @@ class BR_Settings {
         echo '<p>Enable debug mode to log detailed information about plugin operations:</p>';
     }
 
+    public function render_email_section() {
+        echo '<p>Configure email settings for verification notifications:</p>';
+    }
+
     public function render_cloudinary_cloud_name_field() {
         $value = $this->options['cloudinary_cloud_name'] ?? '';
         ?>
@@ -162,9 +189,30 @@ class BR_Settings {
         <label>
             <input type="checkbox" name="beautiful_rescues_options[enable_debug]" 
                    value="1" <?php checked($value, true); ?>>
-            Enable debug logging
+            Enable server-side debug logging
         </label>
         <p class="description">When enabled, detailed logs will be written to <?php echo esc_html(WP_CONTENT_DIR . '/beautiful-rescues-debug.log'); ?></p>
+        <?php
+    }
+
+    public function render_enable_browser_debug_field() {
+        $value = $this->options['enable_browser_debug'] ?? false;
+        ?>
+        <label>
+            <input type="checkbox" name="beautiful_rescues_options[enable_browser_debug]" 
+                   value="1" <?php checked($value, true); ?>>
+            Enable browser console logging
+        </label>
+        <p class="description">When enabled, debug messages will be logged to the browser's console.</p>
+        <?php
+    }
+
+    public function render_verification_email_field() {
+        $value = $this->options['verification_email'] ?? get_option('admin_email');
+        ?>
+        <input type="email" name="beautiful_rescues_options[verification_email]" 
+               value="<?php echo esc_attr($value); ?>" class="regular-text">
+        <p class="description">Email address where verification notifications will be sent.</p>
         <?php
     }
 

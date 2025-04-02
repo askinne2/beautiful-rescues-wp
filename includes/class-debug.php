@@ -16,10 +16,10 @@ class BR_Debug {
     private $current_log_level = 2; // Default to 'info' level
 
     private function __construct() {
-        // Check for debug mode in wp-config.php, environment, or plugin options
-        $this->is_debug_enabled = (defined('WP_DEBUG') && WP_DEBUG) || 
-                                 (getenv('BR_DEBUG') === 'true') ||
-                                 (get_option('beautiful_rescues_options')['enable_debug'] ?? false);
+        // Check for debug mode in environment or plugin options
+        $options = get_option('beautiful_rescues_options', array());
+        $this->is_debug_enabled = (getenv('BR_DEBUG') === 'true') ||
+                                 ($options['enable_debug'] ?? false);
 
         // Set log level from environment or default to 'info'
         $env_log_level = getenv('BR_LOG_LEVEL');
@@ -35,8 +35,10 @@ class BR_Debug {
 
         $this->log_path = WP_CONTENT_DIR . '/' . $this->log_file;
         
-        // Test log file access immediately
-        $this->test_log_file();
+        // Expose debug state to JavaScript if browser debug is enabled
+        if ($options['enable_browser_debug'] ?? false) {
+            add_action('wp_footer', array($this, 'expose_debug_state'));
+        }
     }
 
     private function test_log_file() {
@@ -73,7 +75,6 @@ class BR_Debug {
                 return;
             }
 
-            error_log('Beautiful Rescues Debug: Debug system initialized successfully at: ' . $this->log_path);
         } catch (Exception $e) {
             error_log('Beautiful Rescues Debug: Error initializing debug system - ' . $e->getMessage());
         }
@@ -145,5 +146,24 @@ class BR_Debug {
             return true;
         }
         return false;
+    }
+
+    public function get_debug_state() {
+        return array(
+            'enabled' => $this->is_debug_enabled,
+            'log_level' => array_search($this->current_log_level, $this->log_levels)
+        );
+    }
+
+    public function expose_debug_state() {
+        if (!is_admin()) {
+            $options = get_option('beautiful_rescues_options', array());
+            $debug_state = array(
+                'enabled' => $this->is_debug_enabled,
+                'log_level' => array_search($this->current_log_level, $this->log_levels),
+                'browser_debug' => $options['enable_browser_debug'] ?? false
+            );
+            echo '<script>window.BR_DEBUG = ' . json_encode($debug_state) . ';</script>';
+        }
     }
 } 

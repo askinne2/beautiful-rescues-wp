@@ -3,11 +3,11 @@
 
     // Wait for DOM to be ready
     $(function() {
-        console.log('Checkout page script initialized');
+        BRDebug.info('Checkout page script initialized');
 
         const checkout = $('.checkout-page');
         if (!checkout.length) {
-            console.warn('Checkout page element not found');
+            BRDebug.warn('Checkout page element not found');
             return;
         }
 
@@ -18,7 +18,7 @@
         const checkoutColumn = donationForm.closest('.checkout-column');
         const messages = $('#form-messages');
         
-        console.log('Checkout page elements found:', {
+        BRDebug.info('Checkout page elements found:', {
             checkoutPage: checkout.length > 0,
             selectedImagesGrid: selectedImagesGrid.length > 0,
             donationForm: donationForm.length > 0,
@@ -35,15 +35,22 @@
         // Update localStorage with HTTPS URLs
         localStorage.setItem('beautifulRescuesSelectedImages', JSON.stringify(selectedImages));
 
-        console.log('LocalStorage data:', {
+        BRDebug.info('LocalStorage data:', {
             selectedImages: selectedImages,
             localStorage: localStorage.getItem('beautifulRescuesSelectedImages')
         });
 
         // Function to update selected images preview
         function updateSelectedImagesPreview() {
-            console.log('Updating selected images preview:', {
-                selectedImages: selectedImages
+            const selectedImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]');
+            
+            BRDebug.info('LocalStorage data:', {
+                selectedImages
+            });
+            
+            BRDebug.info('Updating selected images preview:', {
+                selectedImages,
+                previewContainer: $('.selected-images-container').length
             });
 
             if (!selectedImages.length) {
@@ -78,14 +85,14 @@
 
         // Function to update cart count
         function updateCartCount() {
-            const count = selectedImages.length;
-            console.log('Updating cart count:', {
-                count: count,
-                selectedImages: selectedImages
+            const selectedImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]');
+            
+            BRDebug.info('Updating cart count:', {
+                count: selectedImages.length
             });
 
-            $('.cart-count').text(count);
-            $('.cart-button').toggleClass('hidden', count === 0);
+            $('.cart-count').text(selectedImages.length);
+            $('.cart-button').toggleClass('hidden', selectedImages.length === 0);
 
             // Trigger custom event for cart
             $(document).trigger('beautifulRescuesSelectionChanged');
@@ -133,7 +140,7 @@
         // Function to handle form submission
         function handleFormSubmission(e) {
             e.preventDefault();
-            console.group('Form Submission');
+            BRDebug.debug('Starting form submission');
             
             const donationForm = $('#checkout-verification-form');
             const messages = $('#form-messages');
@@ -154,10 +161,9 @@
             for (const [fieldName, label] of Object.entries(requiredFields)) {
                 const field = donationForm.find(`input[name="${fieldName}"]`);
                 if (!field.val().trim()) {
-                    console.error(`Missing required field: ${fieldName}`);
+                    BRDebug.error(`Missing required field: ${fieldName}`);
                     showError(`Please enter your ${label}.`);
                     field.addClass('error').focus();
-                    console.groupEnd();
                     return;
                 }
             }
@@ -166,35 +172,31 @@
             const emailField = donationForm.find('input[name="_donor_email"]');
             const emailValue = emailField.val().trim();
             if (!isValidEmail(emailValue)) {
-                console.error('Invalid email format');
+                BRDebug.error('Invalid email format');
                 showError('Please enter a valid email address.');
                 emailField.addClass('error').focus();
-                console.groupEnd();
                 return;
             }
 
             // Validate verification file
             const fileInput = donationForm.find('input[name="_verification_file"]');
             if (!fileInput.length || !fileInput[0].files.length) {
-                console.error('Missing verification file');
+                BRDebug.error('Missing verification file');
                 showError('Please upload a verification file.');
                 fileInput.addClass('error').focus();
-                console.groupEnd();
                 return;
             }
 
             const fileValidation = validateFileUpload(fileInput[0].files[0]);
             if (!fileValidation.valid) {
-                console.error('Invalid file:', fileValidation.message);
+                BRDebug.error('Invalid file:', fileValidation.message);
                 showError(fileValidation.message);
                 fileInput.addClass('error').focus();
-                console.groupEnd();
                 return;
             }
 
             if (donationForm.data('submitting')) {
-                console.error('Form already submitting');
-                console.groupEnd();
+                BRDebug.error('Form already submitting');
                 return;
             }
 
@@ -204,8 +206,7 @@
             submitButton.prop('disabled', true);
             
             // Show loading overlay
-            console.log('Showing loading overlay');
-            $('.checkout-loading-overlay').addClass('active');
+            showLoadingOverlay();
 
             const formData = new FormData(donationForm[0]);
             
@@ -231,10 +232,10 @@
                 processData: false,
                 contentType: false,
                 success: function(response) {
-                    console.log('Form submission response:', response);
+                    BRDebug.info('Form submission response:', response);
                     
                     if (response.success) {
-                        console.log('Submission successful, showing success message');
+                        BRDebug.info('Submission successful, showing success message');
                         // Hide the form and show success message
                         const successHtml = `
                             <div class="checkout-success">
@@ -247,30 +248,30 @@
                         
                         // Handle redirect if URL is provided
                         if (response.data.redirect_url) {
-                            console.log('Redirect URL provided:', response.data.redirect_url);
+                            BRDebug.info('Redirect URL provided:', response.data.redirect_url);
                             // For debugging, we'll log the redirect but not execute it
                             // setTimeout(() => {
                             //     window.location.href = response.data.redirect_url;
                             // }, 2000);
                         }
                     } else {
-                        console.error('Submission failed:', response.data?.message);
+                        BRDebug.error('Submission failed:', response.data?.message);
                         showError(response.data?.message || beautifulRescuesCheckout.i18n.error);
                     }
                 },
                 error: function(xhr, status, error) {
-                    console.error('Form submission error:', error);
+                    BRDebug.error('Form submission error:', error);
                     showError(beautifulRescuesCheckout.i18n.error);
                 },
                 complete: function() {
-                    console.log('Form submission complete, hiding loading overlay');
-                    console.log('Loading overlay element:', $('.checkout-loading-overlay').length);
-                    console.log('Loading overlay classes:', $('.checkout-loading-overlay').attr('class'));
+                    BRDebug.info('Form submission complete, hiding loading overlay');
+                    BRDebug.info('Loading overlay element:', $('.checkout-loading-overlay').length);
+                    BRDebug.info('Loading overlay classes:', $('.checkout-loading-overlay').attr('class'));
                     
                     // Hide loading overlay
                     $('.checkout-loading-overlay').removeClass('active');
                     
-                    console.log('Loading overlay classes after removal:', $('.checkout-loading-overlay').attr('class'));
+                    BRDebug.info('Loading overlay classes after removal:', $('.checkout-loading-overlay').attr('class'));
                     
                     donationForm.removeClass('submitting');
                     donationForm.data('submitting', false);
@@ -284,9 +285,8 @@
             e.preventDefault();
             const imageId = $(this).data('id');
             
-            console.log('Removing image:', {
-                imageId: imageId,
-                currentSelections: selectedImages
+            BRDebug.info('Removing image:', {
+                imageId
             });
 
             selectedImages = selectedImages.filter(img => img.id !== imageId);
@@ -300,9 +300,8 @@
             // Trigger custom event for cart update
             $(document).trigger('beautifulRescuesSelectionChanged');
             
-            console.log('Image removed, new state:', {
-                selectedImages: selectedImages,
-                localStorage: JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]')
+            BRDebug.info('Image removed, new state:', {
+                selectedImages: JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]')
             });
         });
 
@@ -316,7 +315,7 @@
         donationForm.on('submit', handleFormSubmission);
 
         // Initialize selected images preview
-        console.log('Initializing selected images preview');
+        BRDebug.info('Initializing selected images preview');
         updateSelectedImagesPreview();
     });
 })(jQuery); 

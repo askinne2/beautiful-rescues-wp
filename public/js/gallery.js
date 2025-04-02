@@ -1,5 +1,5 @@
 jQuery(document).ready(function($) {
-    console.log('Gallery script initialized');
+    BRDebug.info('Gallery script initialized');
     
     // Initialize variables
     let currentPage = 1;
@@ -12,23 +12,43 @@ jQuery(document).ready(function($) {
     
     // Initialize the gallery
     function initGallery() {
-        console.log('Initializing gallery');
+        BRDebug.info('Initializing gallery');
         
         // Add loading overlay to the page
         if (!$('.gallery-loading-overlay').length) {
             $('body').append('<div class="gallery-loading-overlay"><div class="gallery-spinner"></div></div>');
         }
         
+        // Get gallery container
+        const galleryContainer = document.querySelector('.beautiful-rescues-gallery');
+        if (!galleryContainer) {
+            BRDebug.error('Gallery container not found');
+            return;
+        }
+
+        // Get initial state
+        const initialState = {
+            style: galleryContainer.dataset.style,
+            columns: galleryContainer.dataset.columns,
+            gutter: galleryContainer.dataset.gutter,
+            maxWidth: galleryContainer.dataset.maxWidth,
+            category: galleryContainer.dataset.category,
+            sort: galleryContainer.dataset.sort,
+            perPage: galleryContainer.dataset.perPage,
+            totalImages: galleryContainer.dataset.totalImages
+        };
+        
+        BRDebug.info('Initial state:', initialState);
+        
         // Get initial data from data attributes
-        const gallery = $('.beautiful-rescues-gallery');
-        currentCategory = gallery.data('category') || '';
-        currentSort = gallery.data('sort') || 'random';
-        currentPerPage = parseInt(gallery.data('per-page')) || 20;
-        const totalImages = parseInt(gallery.data('total-images')) || 0;
+        currentCategory = initialState.category || '';
+        currentSort = initialState.sort || 'random';
+        currentPerPage = parseInt(initialState.perPage) || 20;
+        const totalImages = parseInt(initialState.totalImages) || 0;
 
         // Set initial hasMoreImages state
         hasMoreImages = $('.gallery-grid .gallery-item').length < totalImages;
-        console.log('Initial state:', {
+        BRDebug.info('Initial gallery state:', {
             currentItems: $('.gallery-grid .gallery-item').length,
             totalImages: totalImages,
             hasMoreImages: hasMoreImages
@@ -89,7 +109,7 @@ jQuery(document).ready(function($) {
             const imageId = item.data('public-id');
             const img = item.find('img');
             
-            console.log('Image selection clicked:', {
+            BRDebug.info('Image selection clicked:', {
                 imageId,
                 imgData: {
                     src: img.attr('src'),
@@ -121,22 +141,18 @@ jQuery(document).ready(function($) {
                     url: imgElement.attr('src') || imgElement.data('url') || ''
                 };
                 
-                console.log('Processing image data:', {
-                    id,
-                    imageData,
-                    element: imgElement[0]
-                });
+                BRDebug.info('Processing image data:', imageData);
                 
                 // Validate required fields
                 if (!imageData.id || !imageData.url) {
-                    console.warn('Invalid image data:', imageData);
+                    BRDebug.warn('Invalid image data:', imageData);
                     return null;
                 }
                 
                 return imageData;
             }).filter(Boolean); // Remove any null entries
             
-            console.log('Storing selected images:', selectedImagesArray);
+            BRDebug.info('Storing selected images:', selectedImagesArray);
             localStorage.setItem('beautifulRescuesSelectedImages', JSON.stringify(selectedImagesArray));
             
             // Trigger custom event for cart
@@ -234,7 +250,7 @@ jQuery(document).ready(function($) {
                 nonce: beautifulRescuesGallery.nonce
             },
             success: function(response) {
-                console.log('Server response:', response);
+                BRDebug.info('Server response:', response);
                 
                 if (response.success && response.data.images.length > 0) {
                     const images = response.data.images;
@@ -253,7 +269,7 @@ jQuery(document).ready(function($) {
                     
                     // Update hasMoreImages flag based on total images count
                     hasMoreImages = $('.gallery-grid .gallery-item').length < totalImages;
-                    console.log('hasMoreImages:', hasMoreImages);
+                    BRDebug.info('hasMoreImages:', hasMoreImages);
                     
                     // Show/hide load more button
                     if (hasMoreImages) {
@@ -271,7 +287,7 @@ jQuery(document).ready(function($) {
                 }
             },
             error: function(xhr, status, error) {
-                console.error('Error loading images:', error);
+                BRDebug.error('Error loading images:', error);
                 showToast('Failed to load images. Please try again.');
             },
             complete: function() {

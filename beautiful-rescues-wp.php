@@ -29,8 +29,7 @@ if (!defined('WPINC')) {
 // Initialize debug as early as possible
 require_once dirname(__FILE__) . '/includes/class-debug.php';
 $debug = BR_Debug::get_instance();
-$debug->enable();
-$debug->set_log_level('debug');
+$debug->expose_debug_state();
 $debug->log('Plugin file loaded', array('file' => __FILE__), 'debug');
 
 // Define plugin constants
@@ -38,8 +37,6 @@ define('BR_VERSION', '1.0.0');
 define('BR_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('BR_PLUGIN_URL', plugin_dir_url(__FILE__));
 
-// Test log message
-$debug->log('TEST: Debug system is working', array('test' => true), 'debug');
 
 // Log plugin loading
 $debug->log('Beautiful Rescues plugin file loaded', array(
@@ -93,6 +90,16 @@ $debug->log('All required files included', null, 'debug');
 function beautiful_rescues_init() {
     $debug = BR_Debug::get_instance();
     $debug->log('Initializing Beautiful Rescues plugin', null, 'info');
+    
+    // Enqueue debug utility script
+    wp_enqueue_script(
+        'beautiful-rescues-debug',
+        BR_PLUGIN_URL . 'public/js/debug.js',
+        array(),
+        BR_VERSION,
+        true
+    );
+    
     BR_Beautiful_Rescues::get_instance();
 }
 

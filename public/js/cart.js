@@ -75,15 +75,22 @@
     // Update localStorage with filtered and HTTPS URLs
     localStorage.setItem('beautifulRescuesSelectedImages', JSON.stringify(selectedImages));
 
-    console.log('LocalStorage data:', {
+    BRDebug.info('LocalStorage data:', {
         selectedImages: selectedImages,
         localStorage: localStorage.getItem('beautifulRescuesSelectedImages')
     });
 
     // Function to update selected images preview
     function updateSelectedImagesPreview() {
-        console.log('Updating selected images preview:', {
-            selectedImages: selectedImages
+        const selectedImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]');
+        
+        BRDebug.info('LocalStorage data:', {
+            selectedImages
+        });
+        
+        BRDebug.info('Updating selected images preview:', {
+            selectedImages,
+            previewContainer: $('.cart-items').length
         });
 
         // Only update preview if we're on the checkout page
@@ -119,10 +126,16 @@
 
     // Function to update cart count
     function updateCartCount() {
+        const selectedImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]');
+        
+        BRDebug.info('Updating cart count:', {
+            count: selectedImages.length
+        });
+
         const count = selectedImages.length;
-        console.log('Updating cart count:', {
-            count: count,
-            selectedImages: selectedImages
+        BRDebug.info('Cart count updated:', {
+            count,
+            selectedImages
         });
 
         if (cartCount.length) {
@@ -140,16 +153,16 @@
         try {
             // Check if there are any selected images
             if (!selectedImages.length) {
-                console.log('No items in cart, showing toast notification');
+                BRDebug.info('No items in cart, showing toast notification');
                 showToast('You have no items in your cart');
                 return;
             }
 
             // Redirect to checkout page
-            console.log('Redirecting to checkout:', beautifulRescuesCart.checkoutUrl);
+            BRDebug.info('Redirecting to checkout:', beautifulRescuesCart.checkoutUrl);
             window.location.href = beautifulRescuesCart.checkoutUrl;
         } catch (error) {
-            console.error('Error opening donation modal:', error);
+            BRDebug.error('Error opening donation modal:', error);
             showToast('An error occurred while processing your cart');
         }
     }
@@ -207,8 +220,8 @@
     // Listen for storage changes from other tabs/windows
     $(window).on('storage', function(e) {
         if (e.originalEvent.key === 'beautifulRescuesSelectedImages') {
-            console.log('Storage changed in another window:', {
-                oldValue: e.originalEvent.oldValue,
+            BRDebug.info('Storage changed in another window:', {
+                key: e.originalEvent.key,
                 newValue: e.originalEvent.newValue
             });
             updateCartCount();
@@ -217,7 +230,7 @@
 
     // Listen for selection changes from gallery
     $(document).on('beautifulRescuesSelectionChanged', function(e, data) {
-        console.log('Selection changed event received:', data);
+        BRDebug.info('Selection changed event received:', data);
         
         if (data && data.selectedImages) {
             selectedImages = data.selectedImages.filter(img => img && img.id && img.url);
@@ -239,20 +252,18 @@
     // Handle checkout button click
     $('.donation-checkout-button').on('click', function(e) {
         e.preventDefault();
-        console.log('Checkout button clicked', {
-            selectedImages: selectedImages,
-            localStorage: localStorage.getItem('beautifulRescuesSelectedImages'),
-            checkoutUrl: beautifulRescuesCart.checkoutUrl
+        BRDebug.info('Checkout button clicked', {
+            selectedImages: JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]')
         });
         
         // Check if there are any selected images
         if (!selectedImages.length) {
-            console.warn('No images selected, preventing checkout');
+            BRDebug.info('No images selected, preventing checkout');
             showToast(beautifulRescuesCart.i18n.noImagesSelected);
             return;
         }
         
-        console.log('Redirecting to checkout page');
+        BRDebug.info('Redirecting to checkout page');
         window.location.href = beautifulRescuesCart.checkoutUrl;
     });
 

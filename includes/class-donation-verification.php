@@ -340,25 +340,27 @@ class BR_Donation_Verification {
      * Send admin notification
      */
     private function send_admin_notification($post_id) {
-        error_log('========== START ADMIN NOTIFICATION ==========');
-        error_log('Post ID: ' . $post_id);
+        $this->debug->log('========== START ADMIN NOTIFICATION ==========');
+        $this->debug->log('Post ID: ' . $post_id);
         
-        $admin_email = get_option('admin_email');
-        error_log('Admin email: ' . $admin_email);
+        // Get verification email from settings, fallback to admin email
+        $options = get_option('beautiful_rescues_options', array());
+        $admin_email = $options['verification_email'] ?? get_option('admin_email');
+        $this->debug->log('Admin email: ' . $admin_email);
         
         $donor_email = get_post_meta($post_id, '_email', true);
-        error_log('Donor email: ' . $donor_email);
+        $this->debug->log('Donor email: ' . $donor_email);
         
         $donor_name = sprintf(
             '%s %s',
             get_post_meta($post_id, '_first_name', true),
             get_post_meta($post_id, '_last_name', true)
         );
-        error_log('Donor name: ' . $donor_name);
+        $this->debug->log('Donor name: ' . $donor_name);
 
         // Get verification status
         $status = get_post_meta($post_id, '_status', true);
-        error_log('Status: ' . $status);
+        $this->debug->log('Status: ' . $status);
 
         // Admin notification
         $admin_subject = sprintf('New Donation Verification from %s', $donor_name);
@@ -380,12 +382,12 @@ class BR_Donation_Verification {
             home_url('/review-donations/')
         );
 
-        error_log('Admin email subject: ' . $admin_subject);
-        error_log('Admin email message: ' . $admin_message);
+        $this->debug->log('Admin email subject: ' . $admin_subject);
+        $this->debug->log('Admin email message: ' . $admin_message);
 
         $admin_sent = wp_mail($admin_email, $admin_subject, $admin_message);
-        error_log('Admin email sent: ' . ($admin_sent ? 'Yes' : 'No'));
-        error_log('========== END ADMIN NOTIFICATION ==========');
+        $this->debug->log('Admin email sent: ' . ($admin_sent ? 'Yes' : 'No'));
+        $this->debug->log('========== END ADMIN NOTIFICATION ==========');
     }
 
     /**

@@ -129,7 +129,8 @@ jQuery(document).ready(function($) {
         // Add selected images from localStorage if we're on the checkout page
         if ($('.checkout-page').length) {
             const selectedImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]');
-            console.log('Adding selected images to form submission:', selectedImages);
+            // Add selected images to form submission
+            BRDebug.info('Adding selected images to form submission:', selectedImages);
             formData.append('selected_images', JSON.stringify(selectedImages));
         }
 
@@ -143,7 +144,8 @@ jQuery(document).ready(function($) {
                 if (response.success) {
                     // Clear the selected images from localStorage
                     localStorage.removeItem('beautifulRescuesSelectedImages');
-                    console.log('Cleared selected images from localStorage');
+                    // Clear selected images from localStorage
+                    BRDebug.info('Cleared selected images from localStorage');
 
                     // Hide the form and show success message
                     const successHtml = `
