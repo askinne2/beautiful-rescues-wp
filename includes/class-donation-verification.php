@@ -63,9 +63,10 @@ class BR_Donation_Verification {
         ob_start();
         ?>
         <form id="<?php echo esc_attr($atts['form_id']); ?>" class="beautiful-rescues-verification-form" method="post" enctype="multipart/form-data">
-        <div class="required-field-note">
+            <div class="required-field-note">
                 <p><span class="required-mark">*</span> <?php _e('Required fields', 'beautiful-rescues'); ?></p>
             </div>
+            
             <div class="form-group">
                 <label for="_donor_first_name" data-required=" *"><?php _e('First Name', 'beautiful-rescues'); ?></label>
                 <input type="text" id="_donor_first_name" name="_donor_first_name" required>
@@ -108,14 +109,13 @@ class BR_Donation_Verification {
             <?php wp_nonce_field('beautiful_rescues_verification_nonce', 'verification_nonce'); ?>
             <input type="hidden" name="action" value="submit_donation_verification">
             <input type="hidden" name="source" value="<?php echo esc_attr($atts['source']); ?>">
+            <input type="hidden" name="beautiful_rescues" value="1">
             
             <div class="form-group">
                 <button type="submit" class="submit-button"><?php echo esc_html($atts['submit_button_text']); ?></button>
             </div>
             
             <div class="form-messages" id="form-messages"></div>
-            
-            
         </form>
         <?php
         return ob_get_clean();

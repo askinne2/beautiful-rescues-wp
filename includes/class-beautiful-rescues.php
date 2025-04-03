@@ -292,6 +292,14 @@ class BR_Beautiful_Rescues {
             BR_VERSION
         );
 
+        // Add copyright protection styles
+        wp_enqueue_style(
+            'beautiful-rescues-copyright',
+            BR_PLUGIN_URL . 'public/css/copyright-protection.css',
+            array('beautiful-rescues-gallery'),
+            BR_VERSION
+        );
+
         wp_enqueue_script(
             'beautiful-rescues-gallery',
             BR_PLUGIN_URL . 'public/js/gallery.js',
@@ -365,7 +373,7 @@ class BR_Beautiful_Rescues {
                 ),
                 'i18n' => array(
                     'noImages' => __('No images selected', 'beautiful-rescues'),
-                    'thankYou' => __('Thank you for your donation! We will review your verification and get back to you soon.', 'beautiful-rescues'),
+                    'thankYou' => __('Thank you for your request!', 'beautiful-rescues'),
                     'verificationReceived' => __('Your verification has been received. We will review it and get back to you soon.', 'beautiful-rescues'),
                     'error' => __('An error occurred. Please try again.', 'beautiful-rescues')
                 )

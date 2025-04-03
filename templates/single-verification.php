@@ -164,12 +164,30 @@ while (have_posts()) :
                     <?php 
                     foreach ($selected_images as $image) : 
                         if (isset($image['url'])) :
-                            // Use the image URL directly since it's already from Cloudinary
-                            $image_url = $image['url'];
+                            // Generate responsive image URLs
+                            $base_url = $image['url'];
+                            $responsive_urls = array(
+                                'thumbnail' => str_replace('/upload/', '/upload/w_200,c_scale/', $base_url),
+                                'medium' => str_replace('/upload/', '/upload/w_400,c_scale/', $base_url),
+                                'large' => str_replace('/upload/', '/upload/w_800,c_scale/', $base_url),
+                                'full' => $base_url
+                            );
+                            
+                            // Create srcset string
+                            $srcset = implode(', ', array(
+                                $responsive_urls['thumbnail'] . ' 200w',
+                                $responsive_urls['medium'] . ' 400w',
+                                $responsive_urls['large'] . ' 800w',
+                                $responsive_urls['full'] . ' 1600w'
+                            ));
                     ?>
                             <div class="image-item">
-                                <img src="<?php echo esc_url($image_url); ?>" alt="<?php _e('Selected image', 'beautiful-rescues'); ?>">
-                                <a href="<?php echo esc_url($image_url); ?>" target="_blank" class="view-full">
+                                <img src="<?php echo esc_url($responsive_urls['medium']); ?>"
+                                     srcset="<?php echo esc_attr($srcset); ?>"
+                                     sizes="(max-width: 480px) 200px, (max-width: 768px) 400px, (max-width: 1200px) 800px, 1600px"
+                                     alt="<?php _e('Selected image', 'beautiful-rescues'); ?>"
+                                     loading="lazy">
+                                <a href="<?php echo esc_url($base_url); ?>" target="_blank" class="view-full">
                                     <?php _e('View Full Size', 'beautiful-rescues'); ?>
                                 </a>
                             </div>

@@ -382,6 +382,9 @@
                 // Add selected images to form data
                 formData.append('selected_images', JSON.stringify(selectedImages));
                 
+                // Ensure beautiful_rescues identifier is set
+                formData.append('beautiful_rescues', '1');
+                
                 // Submit form via AJAX
                 $.ajax({
                     url: beautifulRescuesVerification.ajaxurl,

@@ -27,18 +27,29 @@ class BR_Cloudinary_Integration {
         "White"
     ];
 
+    /**
+     * Constructor
+     */
     public function __construct() {
         $this->debug = BR_Debug::get_instance();
-        $options = get_option('beautiful_rescues_options');
+        $this->debug->log('Initializing Cloudinary integration');
         
-        $this->cloud_name = $options['cloudinary_cloud_name'] ?? '';
-        $this->api_key = $options['cloudinary_api_key'] ?? '';
-        $this->api_secret = $options['cloudinary_api_secret'] ?? '';
-        $this->folder = $options['cloudinary_folder'] ?? 'Cats';
-
-        // Add hooks for media handling
-        add_filter('wp_handle_upload', array($this, 'handle_upload_to_cloudinary'), 10, 2);
-        add_filter('wp_getattachmenturl', array($this, 'get_cloudinary_url'), 10, 2);
+        // Get options
+        $options = get_option('beautiful_rescues_options', array());
+        $this->cloud_name = isset($options['cloudinary_cloud_name']) ? $options['cloudinary_cloud_name'] : '';
+        $this->api_key = isset($options['cloudinary_api_key']) ? $options['cloudinary_api_key'] : '';
+        $this->api_secret = isset($options['cloudinary_api_secret']) ? $options['cloudinary_api_secret'] : '';
+        $this->folder = isset($options['cloudinary_folder']) ? $options['cloudinary_folder'] : 'beautiful-rescues';
+        
+        // Add hooks for media handling with high priority to run after other plugins
+        add_filter('wp_handle_upload', array($this, 'handle_upload_to_cloudinary'), 99, 2);
+        add_filter('wp_get_attachment_url', array($this, 'get_cloudinary_url'), 99, 2);
+        
+        // Add filter to identify Beautiful Rescues uploads
+        add_filter('upload_dir', array($this, 'identify_br_uploads'), 10, 1);
+        
+        // Add filter for gallery images
+        add_filter('wp_get_attachment_image_src', array($this, 'get_cloudinary_image_src'), 99, 4);
     }
 
     /**
@@ -81,7 +92,47 @@ class BR_Cloudinary_Integration {
      * Handle file upload to Cloudinary
      */
     public function handle_upload_to_cloudinary($upload, $context) {
-        if ($context !== 'upload') {
+        // Skip processing for WordPress Media Library uploads
+        if ($context === 'upload' && isset($_SERVER['HTTP_REFERER'])) {
+            $referer = $_SERVER['HTTP_REFERER'];
+            
+            // Check if this is a WordPress Media Library upload
+            if (strpos($referer, 'wp-admin/media-upload.php') !== false || 
+                strpos($referer, 'wp-admin/media-new.php') !== false ||
+                strpos($referer, 'wp-admin/upload.php') !== false) {
+                $this->debug->log('Bypassing Cloudinary for WordPress Media Library upload', array('referer' => $referer));
+                return $upload;
+            }
+        }
+        
+        // Check if this is a Beautiful Rescues upload
+        $is_br_upload = false;
+        
+        // Method 1: Check if it's identified as a BR upload
+        if (isset($upload['beautiful_rescues']) && $upload['beautiful_rescues'] === true) {
+            $is_br_upload = true;
+        }
+        
+        // Method 2: Check referer
+        if (!$is_br_upload && isset($_SERVER['HTTP_REFERER'])) {
+            $referer = $_SERVER['HTTP_REFERER'];
+            $is_br_upload = strpos($referer, 'beautiful-rescues') !== false;
+        }
+        
+        // Method 3: Check if it's a verification post type
+        if (!$is_br_upload && isset($_POST['post_id'])) {
+            $post_type = get_post_type($_POST['post_id']);
+            $is_br_upload = $post_type === 'verification';
+        }
+        
+        // If not from our plugin, return the upload as is
+        if (!$is_br_upload) {
+            return $upload;
+        }
+
+        // Ensure we have a valid file
+        if (!isset($upload['file']) || empty($upload['file'])) {
+            $this->debug->log('Invalid upload data: missing file', $upload);
             return $upload;
         }
 
@@ -105,21 +156,63 @@ class BR_Cloudinary_Integration {
             );
         } catch (Exception $e) {
             $this->debug->log('Cloudinary upload error: ' . $e->getMessage());
-            return false;
+            return $upload; // Return original upload on error
         }
     }
 
     /**
-     * Get Cloudinary URL for attachment
+     * Get Cloudinary URL for an attachment
      */
     public function get_cloudinary_url($url, $attachment_id) {
-        $public_id = get_post_meta($attachment_id, '_cloudinary_public_id', true);
+        // Skip processing for WordPress Media Library URLs
+        if (isset($_SERVER['REQUEST_URI']) && 
+            (strpos($_SERVER['REQUEST_URI'], 'wp-admin/media-upload.php') !== false || 
+             strpos($_SERVER['REQUEST_URI'], 'wp-admin/media-new.php') !== false ||
+             strpos($_SERVER['REQUEST_URI'], 'wp-admin/upload.php') !== false)) {
+            return $url;
+        }
         
-        if (!$public_id) {
-            $this->debug->log('No Cloudinary public_id found for attachment: ' . $attachment_id);
+        // Check if this is a Beautiful Rescues attachment
+        $post = get_post($attachment_id);
+        if (!$post) {
+            return $url;
+        }
+        
+        // Check if this is a verification post type
+        if ($post->post_type === 'verification') {
+            return $url; // Don't process verification files
+        }
+        
+        // Check if this is a Beautiful Rescues gallery image
+        $is_br_image = false;
+        
+        // Method 1: Check if it has our meta
+        $cloudinary_public_id = get_post_meta($attachment_id, '_cloudinary_public_id', true);
+        if (!empty($cloudinary_public_id)) {
+            $is_br_image = true;
+        }
+        
+        // Method 2: Check if it's in our gallery
+        if (!$is_br_image) {
+            $selected_images = get_post_meta($attachment_id, '_selected_images', true);
+            if (!empty($selected_images)) {
+                $is_br_image = true;
+            }
+        }
+        
+        // If not from our plugin, return the original URL
+        if (!$is_br_image) {
             return $url;
         }
 
+        // Get Cloudinary public ID
+        $public_id = get_post_meta($attachment_id, '_cloudinary_public_id', true);
+        if (empty($public_id)) {
+            $this->debug->log('No Cloudinary public ID found for attachment', array('attachment_id' => $attachment_id));
+            return $url;
+        }
+
+        // Generate Cloudinary URL
         return $this->generate_image_url($public_id);
     }
 
@@ -134,7 +227,9 @@ class BR_Cloudinary_Integration {
             'crop' => 'fill',
             'quality' => 'auto',
             'format' => 'auto',
-            'watermark' => true
+            'watermark' => true,
+            'responsive' => true,
+            'webp' => true
         );
 
         // Merge with provided options
@@ -143,7 +238,25 @@ class BR_Cloudinary_Integration {
         // Build transformations array
         $transformations = array();
 
-        // Add watermark if enabled
+        // Add responsive sizes if enabled
+        if ($options['responsive']) {
+            $transformations[] = "w_auto,dpr_auto";
+        }
+
+        // Add crop settings
+        $transformations[] = "c_{$options['crop']},w_{$options['width']},h_{$options['height']}";
+
+        // Add quality setting
+        $transformations[] = "q_{$options['quality']}";
+        
+        // Add WebP support with fallback
+        if ($options['webp']) {
+            $transformations[] = "f_auto";
+        } else {
+            $transformations[] = "f_{$options['format']}";
+        }
+
+        // Add watermark if enabled (after other transformations)
         if ($options['watermark'] && get_option('enable_watermark')) {
             $watermark_url = get_option('watermark_url', 'https://res.cloudinary.com/dgnb4yyrc/image/upload/v1743356913/br-watermark-2025_2x_uux1x2.webp');
             // Extract the public ID from the watermark URL
@@ -153,20 +266,17 @@ class BR_Cloudinary_Integration {
             }
         }
 
-        // Add main image transformations last
-        $transformations[] = "c_{$options['crop']},w_{$options['width']},h_{$options['height']}";
-        $transformations[] = "q_{$options['quality']},f_{$options['format']}";
-
         // Join transformations with forward slashes
         $transformations_string = implode('/', $transformations);
 
         $url = "https://res.cloudinary.com/{$this->cloud_name}/image/upload/{$transformations_string}/{$public_id}";
-        // $this->debug->log('Generated Cloudinary URL', array(
-        //     'public_id' => $public_id,
-        //     'options' => $options,
-        //     'transformations' => $transformations,
-        //     'url' => $url
-        // ), 'info');
+        
+        $this->debug->log('Generated Cloudinary URL', array(
+            'public_id' => $public_id,
+            'options' => $options,
+            'transformations' => $transformations,
+            'url' => $url
+        ), 'info');
 
         return $url;
     }
@@ -386,5 +496,101 @@ class BR_Cloudinary_Integration {
             ], 'error');
             return 0;
         }
+    }
+
+    /**
+     * Identify Beautiful Rescues uploads
+     */
+    public function identify_br_uploads($uploads) {
+        // Check if this is a Beautiful Rescues upload
+        $is_br_upload = false;
+        
+        // Method 1: Check POST data
+        if (isset($_POST['beautiful_rescues']) && $_POST['beautiful_rescues'] === '1') {
+            $is_br_upload = true;
+        }
+        
+        // Method 2: Check referer
+        if (!$is_br_upload && isset($_SERVER['HTTP_REFERER'])) {
+            $referer = $_SERVER['HTTP_REFERER'];
+            $is_br_upload = strpos($referer, 'beautiful-rescues') !== false;
+        }
+        
+        // Method 3: Check if it's a verification post type
+        if (!$is_br_upload && isset($_POST['post_id'])) {
+            $post_type = get_post_type($_POST['post_id']);
+            $is_br_upload = $post_type === 'verification';
+        }
+        
+        // If this is a Beautiful Rescues upload, add our identifier
+        if ($is_br_upload) {
+            $uploads['beautiful_rescues'] = true;
+            $this->debug->log('Identified Beautiful Rescues upload', $uploads);
+        }
+        
+        return $uploads;
+    }
+
+    /**
+     * Get Cloudinary image source
+     */
+    public function get_cloudinary_image_src($image_src, $attachment_id, $size, $icon) {
+        // Skip processing for WordPress Media Library image sources
+        if (isset($_SERVER['REQUEST_URI']) && 
+            (strpos($_SERVER['REQUEST_URI'], 'wp-admin/media-upload.php') !== false || 
+             strpos($_SERVER['REQUEST_URI'], 'wp-admin/media-new.php') !== false ||
+             strpos($_SERVER['REQUEST_URI'], 'wp-admin/upload.php') !== false)) {
+            return $image_src;
+        }
+        
+        // Check if this is a Beautiful Rescues attachment
+        $post = get_post($attachment_id);
+        if (!$post) {
+            return $image_src;
+        }
+        
+        // Check if this is a verification post type
+        if ($post->post_type === 'verification') {
+            return $image_src; // Don't process verification files
+        }
+        
+        // Check if this is a Beautiful Rescues gallery image
+        $is_br_image = false;
+        
+        // Method 1: Check if it has our meta
+        $cloudinary_public_id = get_post_meta($attachment_id, '_cloudinary_public_id', true);
+        if (!empty($cloudinary_public_id)) {
+            $is_br_image = true;
+        }
+        
+        // Method 2: Check if it's in our gallery
+        if (!$is_br_image) {
+            $selected_images = get_post_meta($attachment_id, '_selected_images', true);
+            if (!empty($selected_images)) {
+                $is_br_image = true;
+            }
+        }
+        
+        // If not from our plugin, return the original image source
+        if (!$is_br_image) {
+            return $image_src;
+        }
+
+        // Get Cloudinary public ID
+        $public_id = get_post_meta($attachment_id, '_cloudinary_public_id', true);
+        if (empty($public_id)) {
+            $this->debug->log('No Cloudinary public ID found for attachment', array('attachment_id' => $attachment_id));
+            return $image_src;
+        }
+
+        // Generate Cloudinary image source
+        $image_src = $this->generate_image_url($public_id);
+        
+        $this->debug->log('Generated Cloudinary image source', array(
+            'public_id' => $public_id,
+            'image_src' => $image_src
+        ), 'info');
+
+        return $image_src;
     }
 } 

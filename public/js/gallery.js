@@ -297,15 +297,30 @@
             const imageWidth = image.width || '';
             const imageHeight = image.height || '';
 
+            // Generate responsive image URLs
+            const responsiveUrls = {
+                thumbnail: imageUrl.replace('/upload/', '/upload/w_200,c_scale/'),
+                medium: imageUrl.replace('/upload/', '/upload/w_400,c_scale/'),
+                large: imageUrl.replace('/upload/', '/upload/w_800,c_scale/'),
+                full: imageUrl
+            };
+
+            // Create srcset string
+            const srcset = Object.entries(responsiveUrls)
+                .map(([size, url]) => `${url} ${size === 'thumbnail' ? '200w' : size === 'medium' ? '400w' : size === 'large' ? '800w' : '1600w'}`)
+                .join(', ');
+
             return `
                 <div class="gallery-item" data-public-id="${imageId}">
                     <div class="gallery-item-image">
-                        <img src="${imageUrl}" 
-                             alt="${imageFilename}" 
-                             loading="lazy" 
-                             data-width="${imageWidth}" 
+                        <img src="${responsiveUrls.medium}"
+                             srcset="${srcset}"
+                             sizes="(max-width: 480px) 200px, (max-width: 768px) 400px, (max-width: 1200px) 800px, 1600px"
+                             alt="${imageFilename}"
+                             data-url="${imageUrl}"
+                             data-width="${imageWidth}"
                              data-height="${imageHeight}"
-                             data-url="${imageUrl}">
+                             loading="lazy">
                         <div class="gallery-item-actions">
                             <button class="gallery-item-button select-button" aria-label="Select image">
                                 <svg class="radio-icon" viewBox="0 0 24 24" width="24" height="24">
