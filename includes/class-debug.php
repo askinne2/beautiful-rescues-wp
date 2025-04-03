@@ -5,6 +5,7 @@
 class BR_Debug {
     private static $instance = null;
     private $is_debug_enabled = false;
+    private $is_browser_debug_enabled = false;
     private $log_file = 'beautiful-rescues-debug.log';
     private $log_path;
     private $log_levels = array(
@@ -16,10 +17,13 @@ class BR_Debug {
     private $current_log_level = 2; // Default to 'info' level
 
     private function __construct() {
-        // Check for debug mode in environment or plugin options
-        $options = get_option('beautiful_rescues_options', array());
-        $this->is_debug_enabled = (getenv('BR_DEBUG') === 'true') ||
-                                 ($options['enable_debug'] ?? false);
+        // Check for debug mode in wp-config.php, environment, or plugin options
+        $this->is_debug_enabled = (defined('WP_DEBUG') && WP_DEBUG) || 
+                                 (getenv('BR_DEBUG') === 'true') ||
+                                 (get_option('beautiful_rescues_options')['enable_debug'] ?? false);
+        
+        // Check for browser debug mode in plugin options
+        $this->is_browser_debug_enabled = get_option('beautiful_rescues_options')['enable_browser_debug'] ?? false;
 
         // Set log level from environment or default to 'info'
         $env_log_level = getenv('BR_LOG_LEVEL');
@@ -35,10 +39,8 @@ class BR_Debug {
 
         $this->log_path = WP_CONTENT_DIR . '/' . $this->log_file;
         
-        // Expose debug state to JavaScript if browser debug is enabled
-        if ($options['enable_browser_debug'] ?? false) {
-            add_action('wp_footer', array($this, 'expose_debug_state'));
-        }
+        // Test log file access immediately
+        //$this->test_log_file();
     }
 
     private function test_log_file() {
@@ -75,6 +77,7 @@ class BR_Debug {
                 return;
             }
 
+            error_log('Beautiful Rescues Debug: Debug system initialized successfully at: ' . $this->log_path);
         } catch (Exception $e) {
             error_log('Beautiful Rescues Debug: Error initializing debug system - ' . $e->getMessage());
         }
@@ -148,22 +151,17 @@ class BR_Debug {
         return false;
     }
 
-    public function get_debug_state() {
-        return array(
-            'enabled' => $this->is_debug_enabled,
-            'log_level' => array_search($this->current_log_level, $this->log_levels)
-        );
+    public function is_browser_debug_enabled() {
+        return $this->is_browser_debug_enabled;
     }
 
-    public function expose_debug_state() {
-        if (!is_admin()) {
-            $options = get_option('beautiful_rescues_options', array());
-            $debug_state = array(
-                'enabled' => $this->is_debug_enabled,
-                'log_level' => array_search($this->current_log_level, $this->log_levels),
-                'browser_debug' => $options['enable_browser_debug'] ?? false
-            );
-            echo '<script>window.BR_DEBUG = ' . json_encode($debug_state) . ';</script>';
-        }
+    public function enable_browser_debug() {
+        $this->is_browser_debug_enabled = true;
+        $this->log('Browser console logging enabled manually', null, 'info');
+    }
+
+    public function disable_browser_debug() {
+        $this->is_browser_debug_enabled = false;
+        $this->log('Browser console logging disabled manually', null, 'info');
     }
 } 

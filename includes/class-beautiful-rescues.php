@@ -125,7 +125,6 @@ class BR_Beautiful_Rescues {
      */
     public function init() {
         $debug = BR_Debug::get_instance();
-        $debug->log('Starting Beautiful Rescues initialization', null, 'info');
 
         // Load text domain
         load_plugin_textdomain('beautiful-rescues', false, dirname(plugin_basename(__FILE__)) . '/languages');
@@ -359,6 +358,10 @@ class BR_Beautiful_Rescues {
                 'nonce' => wp_create_nonce('beautiful_rescues_verification_nonce'),
                 'homeUrl' => home_url(),
                 'watermarkUrl' => get_option('watermark_url', 'https://res.cloudinary.com/dgnb4yyrc/image/upload/v1743356531/br-watermark-2025_2x_baljip.webp'),
+                'debug' => array(
+                    'enabled' => $this->debug->is_enabled(),
+                    'browserEnabled' => $this->debug->is_browser_debug_enabled()
+                ),
                 'i18n' => array(
                     'noImages' => __('No images selected', 'beautiful-rescues'),
                     'thankYou' => __('Thank you for your donation! We will review your verification and get back to you soon.', 'beautiful-rescues'),
@@ -372,6 +375,10 @@ class BR_Beautiful_Rescues {
             'ajaxurl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('beautiful_rescues_gallery_nonce'),
             'watermarkUrl' => get_option('watermark_url', 'https://res.cloudinary.com/dgnb4yyrc/image/upload/v1743356531/br-watermark-2025_2x_baljip.webp'),
+            'debug' => array(
+                'enabled' => $this->debug->is_enabled(),
+                'browserEnabled' => $this->debug->is_browser_debug_enabled()
+            ),
             'i18n' => array(
                 'select' => __('Select', 'beautiful-rescues'),
                 'selected' => __('Selected', 'beautiful-rescues'),
@@ -389,6 +396,10 @@ class BR_Beautiful_Rescues {
             'nonce' => wp_create_nonce('beautiful_rescues_cart_nonce'),
             'checkoutUrl' => home_url('/checkout/'),
             'watermarkUrl' => get_option('watermark_url', 'https://res.cloudinary.com/dgnb4yyrc/image/upload/v1743356531/br-watermark-2025_2x_baljip.webp'),
+            'debug' => array(
+                'enabled' => $this->debug->is_enabled(),
+                'browserEnabled' => $this->debug->is_browser_debug_enabled()
+            ),
             'i18n' => array(
                 'noImagesSelected' => __('No images selected', 'beautiful-rescues'),
                 'selectedImages' => __('Selected Images', 'beautiful-rescues'),
@@ -403,6 +414,22 @@ class BR_Beautiful_Rescues {
                 'thankYou' => __('Thank you for your donation! We will review your verification and get back to you soon.', 'beautiful-rescues'),
                 'error' => __('An error occurred. Please try again.', 'beautiful-rescues')
             )
+        ));
+
+        // Register and enqueue debug utility
+        wp_register_script(
+            'beautiful-rescues-debug',
+            BR_PLUGIN_URL . 'public/js/debug.js',
+            array('jquery'),
+            BR_VERSION,
+            true
+        );
+        wp_enqueue_script('beautiful-rescues-debug');
+
+        // Localize debug script
+        wp_localize_script('beautiful-rescues-debug', 'beautifulRescuesDebugSettings', array(
+            'enabled' => $this->debug->is_enabled(),
+            'browserEnabled' => $this->debug->is_browser_debug_enabled()
         ));
     }
 

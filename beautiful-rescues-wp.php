@@ -8,7 +8,7 @@
 * Plugin Name:       Beautiful Rescues
 * Plugin URI:        https://github.com/askinne2/beautiful-rescues-wp
 *
-* Description:       WordPress plugin for managing rescue donations and displaying Cloudinary image galleries
+* Description:       WordPress plugin for managing donation verifications and displaying Cloudinary image galleries
 *
 *
 * Version:           1.0.0
@@ -29,7 +29,7 @@ if (!defined('WPINC')) {
 // Initialize debug as early as possible
 require_once dirname(__FILE__) . '/includes/class-debug.php';
 $debug = BR_Debug::get_instance();
-$debug->expose_debug_state();
+// Debug is now controlled by settings, no need to force enable
 $debug->log('Plugin file loaded', array('file' => __FILE__), 'debug');
 
 // Define plugin constants
@@ -37,6 +37,8 @@ define('BR_VERSION', '1.0.0');
 define('BR_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('BR_PLUGIN_URL', plugin_dir_url(__FILE__));
 
+// Test log message
+$debug->log('TEST: Debug system is working', array('test' => true), 'debug');
 
 // Log plugin loading
 $debug->log('Beautiful Rescues plugin file loaded', array(
@@ -90,16 +92,6 @@ $debug->log('All required files included', null, 'debug');
 function beautiful_rescues_init() {
     $debug = BR_Debug::get_instance();
     $debug->log('Initializing Beautiful Rescues plugin', null, 'info');
-    
-    // Enqueue debug utility script
-    wp_enqueue_script(
-        'beautiful-rescues-debug',
-        BR_PLUGIN_URL . 'public/js/debug.js',
-        array(),
-        BR_VERSION,
-        true
-    );
-    
     BR_Beautiful_Rescues::get_instance();
 }
 
@@ -107,12 +99,12 @@ function beautiful_rescues_init() {
 add_action('plugins_loaded', 'beautiful_rescues_init', 10);
 
 // Register activation and deactivation hooks
-register_activation_hook(__FILE__, function() {
+register_activation_hook(__FILE__, 'beautiful_rescues_activate');
+function beautiful_rescues_activate() {
     // Ensure debug is initialized first
     require_once dirname(__FILE__) . '/includes/class-debug.php';
     $debug = BR_Debug::get_instance();
-    $debug->enable();
-    $debug->set_log_level('debug');
+    // Debug is now controlled by settings, no need to force enable
     
     $debug->log('Beautiful Rescues plugin activation hook triggered', null, 'debug');
     $debug->log('Starting Beautiful Rescues activation process', null, 'info');
@@ -123,15 +115,14 @@ register_activation_hook(__FILE__, function() {
     } catch (Exception $e) {
         $debug->log('Error during Beautiful Rescues activation: ' . $e->getMessage(), null, 'error');
     }
-});
+}
 
-register_deactivation_hook(__FILE__, function() {
+register_deactivation_hook(__FILE__, 'beautiful_rescues_deactivate');
+function beautiful_rescues_deactivate() {
     $debug = BR_Debug::get_instance();
     $debug->log('Beautiful Rescues plugin deactivation hook triggered', null, 'debug');
     
-    // Force debug mode during deactivation
-    $debug->enable();
-    $debug->set_log_level('debug');
+    // Debug is now controlled by settings, no need to force enable
     
     $debug->log('Starting Beautiful Rescues deactivation process', null, 'info');
     
@@ -141,7 +132,7 @@ register_deactivation_hook(__FILE__, function() {
     } catch (Exception $e) {
         $debug->log('Error during Beautiful Rescues deactivation: ' . $e->getMessage(), null, 'error');
     }
-});
+}
 
 // Add admin notice if Cloudinary credentials are missing
 add_action('admin_notices', 'beautiful_rescues_check_credentials');

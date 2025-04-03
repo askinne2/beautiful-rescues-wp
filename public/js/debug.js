@@ -1,93 +1,84 @@
 /**
  * Debug utility for Beautiful Rescues
+ * 
+ * This utility provides conditional logging based on debug settings.
+ * It ensures that console logs are only output when debug mode is enabled.
  */
-const BRDebug = {
-    enabled: false,
-    logLevel: 'info',
-    levels: {
-        'error': 0,
-        'warning': 1,
-        'info': 2,
-        'debug': 3
-    },
 
-    init() {
-        // Get debug state from PHP if available
-        if (typeof window.BR_DEBUG !== 'undefined') {
-            this.enabled = window.BR_DEBUG.enabled && window.BR_DEBUG.browser_debug;
-            this.logLevel = window.BR_DEBUG.log_level;
-            this.debug('Debug utility initialized', {
-                enabled: this.enabled,
-                logLevel: this.logLevel,
-                browserDebug: window.BR_DEBUG.browser_debug
+(function($) {
+    'use strict';
+
+    // Create a global debug object if it doesn't exist
+    window.beautifulRescuesDebug = window.beautifulRescuesDebug || {};
+
+    // Initialize debug settings
+    beautifulRescuesDebug.init = function(settings) {
+        beautifulRescuesDebug.enabled = settings.enabled || false;
+        beautifulRescuesDebug.browserEnabled = settings.browserEnabled || false;
+        
+        // Log initialization if browser debug is enabled
+        if (beautifulRescuesDebug.browserEnabled) {
+            console.log('Beautiful Rescues Debug: Initialized', {
+                serverDebug: beautifulRescuesDebug.enabled,
+                browserDebug: beautifulRescuesDebug.browserEnabled
             });
         }
-    },
+    };
 
-    shouldLog(level) {
-        return this.enabled && this.levels[level] <= this.levels[this.logLevel];
-    },
-
-    log(message, data = null, level = 'info') {
-        if (!this.shouldLog(level)) return;
-
-        const timestamp = new Date().toISOString();
-        const logMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}`;
-        
-        // Use appropriate console method based on level
-        switch (level) {
-            case 'error':
-                console.error(logMessage);
-                break;
-            case 'warning':
-                console.warn(logMessage);
-                break;
-            case 'debug':
-                console.debug(logMessage);
-                break;
-            default:
-                console.log(logMessage);
-        }
-
-        if (data !== null) {
-            // Format the data object for better readability
-            const formattedData = typeof data === 'object' 
-                ? JSON.stringify(data, null, 2)
-                : data;
-            
-            // Log data with appropriate console method
-            switch (level) {
-                case 'error':
-                    console.error('Data:', formattedData);
-                    break;
-                case 'warning':
-                    console.warn('Data:', formattedData);
-                    break;
-                case 'debug':
-                    console.debug('Data:', formattedData);
-                    break;
-                default:
-                    console.log('Data:', formattedData);
+    // Log function that only logs if browser debug is enabled
+    beautifulRescuesDebug.log = function(message, data) {
+        if (beautifulRescuesDebug.browserEnabled) {
+            if (data) {
+                console.log('Beautiful Rescues: ' + message, data);
+            } else {
+                console.log('Beautiful Rescues: ' + message);
             }
         }
-    },
+    };
 
-    error(message, data = null) {
-        this.log(message, data, 'error');
-    },
+    // Error function that always logs errors regardless of debug settings
+    beautifulRescuesDebug.error = function(message, data) {
+        if (data) {
+            console.error('Beautiful Rescues Error: ' + message, data);
+        } else {
+            console.error('Beautiful Rescues Error: ' + message);
+        }
+    };
 
-    warn(message, data = null) {
-        this.log(message, data, 'warning');
-    },
+    // Warning function that logs if browser debug is enabled
+    beautifulRescuesDebug.warn = function(message, data) {
+        if (beautifulRescuesDebug.browserEnabled) {
+            if (data) {
+                console.warn('Beautiful Rescues Warning: ' + message, data);
+            } else {
+                console.warn('Beautiful Rescues Warning: ' + message);
+            }
+        }
+    };
 
-    info(message, data = null) {
-        this.log(message, data, 'info');
-    },
+    // Info function that logs if browser debug is enabled
+    beautifulRescuesDebug.info = function(message, data) {
+        if (beautifulRescuesDebug.browserEnabled) {
+            if (data) {
+                console.info('Beautiful Rescues Info: ' + message, data);
+            } else {
+                console.info('Beautiful Rescues Info: ' + message);
+            }
+        }
+    };
 
-    debug(message, data = null) {
-        this.log(message, data, 'debug');
-    }
-};
+    // Group function that logs if browser debug is enabled
+    beautifulRescuesDebug.group = function(message) {
+        if (beautifulRescuesDebug.browserEnabled) {
+            console.group('Beautiful Rescues: ' + message);
+        }
+    };
 
-// Initialize debug utility
-BRDebug.init(); 
+    // GroupEnd function that logs if browser debug is enabled
+    beautifulRescuesDebug.groupEnd = function() {
+        if (beautifulRescuesDebug.browserEnabled) {
+            console.groupEnd();
+        }
+    };
+
+})(jQuery); 

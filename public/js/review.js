@@ -32,7 +32,7 @@ jQuery(document).ready(function($) {
                 currentPage = 1;
                 loadDonations();
             } catch (error) {
-                BRDebug.error('Error in search filter:', error);
+                console.error('Error in search filter:', error);
                 searchTerm = '';
                 currentPage = 1;
                 loadDonations();
