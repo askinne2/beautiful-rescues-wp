@@ -29,7 +29,7 @@ class BR_Gallery_Shortcode {
         wp_enqueue_script(
             'beautiful-rescues-gallery',
             BR_PLUGIN_URL . 'public/js/gallery.js',
-            array('jquery'),
+            array('jquery', 'elementor-frontend'),
             BR_VERSION,
             true
         );

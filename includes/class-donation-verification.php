@@ -251,10 +251,11 @@ class BR_Donation_Verification {
 
         // Return success response
         wp_send_json_success(array(
-            'message' => 'Your verification has been submitted successfully.'
-                // 'redirect_url' => isset($_POST['source']) && $_POST['source'] === 'checkout' 
-                //     ? home_url('/thank-you/') 
-                // : null
+            'message' => 'Your verification has been submitted successfully.',
+            'verification_id' => $post_id,
+            'redirect_url' => isset($_POST['source']) && $_POST['source'] === 'checkout' 
+                    ? get_permalink($post_id) . '?token=' . $access_token
+                : null
         ));
     }
 
@@ -328,13 +329,6 @@ class BR_Donation_Verification {
         }
 
         error_log('Stored verification data');
-
-        // Send email notifications
-        error_log('Triggering email notifications');
-        $this->send_admin_notification($donation_id);
-        $this->send_donor_confirmation($donation_id);
-        error_log('Email notifications triggered');
-
         error_log('========== END PROCESS FORM SUBMISSION ==========');
         return $donation_id;
     }
@@ -365,6 +359,10 @@ class BR_Donation_Verification {
         $status = get_post_meta($post_id, '_status', true);
         $this->debug->log('Status: ' . $status);
 
+        // Get access token for admin view
+        $access_token = get_post_meta($post_id, '_access_token', true);
+        $verification_url = get_permalink($post_id) . '?token=' . $access_token;
+
         // Admin notification
         $admin_subject = sprintf('New Donation Verification from %s', $donor_name);
         $admin_message = sprintf(
@@ -381,7 +379,7 @@ class BR_Donation_Verification {
             get_post_meta($post_id, '_phone', true),
             get_post_meta($post_id, '_message', true),
             $status,
-            admin_url('post.php?post=' . $post_id . '&action=edit'),
+            $verification_url,
             home_url('/review-donations/')
         );
 
@@ -413,6 +411,10 @@ class BR_Donation_Verification {
         // Get verification status
         $status = get_post_meta($post_id, '_status', true);
         error_log('Status: ' . $status);
+        
+        // Get access token for verification link
+        $access_token = get_post_meta($post_id, '_access_token', true);
+        $verification_url = get_permalink($post_id) . '?token=' . $access_token;
 
         $donor_subject = 'Thank you for your donation verification';
         $donor_message = sprintf(
@@ -424,6 +426,8 @@ class BR_Donation_Verification {
             "- Phone: %s\n" .
             "- Message: %s\n" .
             "- Status: %s\n\n" .
+            "You can view your verification details at any time by visiting this link:\n" .
+            "%s\n\n" .
             "We will contact you once we've reviewed your verification.\n\n" .
             "Best regards,\n" .
             "Beautiful Rescues Team",
@@ -432,7 +436,8 @@ class BR_Donation_Verification {
             $donor_email,
             get_post_meta($post_id, '_phone', true),
             get_post_meta($post_id, '_message', true),
-            $status
+            $status,
+            $verification_url
         );
 
         error_log('Donor email subject: ' . $donor_subject);

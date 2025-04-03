@@ -158,7 +158,7 @@ if (defined('ELEMENTOR_VERSION')) {
             array('elementor-frontend'),
             BR_VERSION
         );
-    });
+    }, 20);  // Higher priority number ensures it loads after Elementor
 }
 
 // Prevent new user registration

@@ -5,7 +5,7 @@
 class BR_Cart_Shortcode {
     public function __construct() {
         add_shortcode('beautiful_rescues_cart', array($this, 'render_cart'));
-        add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
+        add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'), 20);
     }
 
     /**
@@ -14,27 +14,20 @@ class BR_Cart_Shortcode {
     public function enqueue_scripts() {
         $debug = BR_Debug::get_instance();
         
+        // Add Elementor dependency if Elementor is active
+        $dependencies = defined('ELEMENTOR_VERSION') ? array('elementor-frontend') : array();
+        
         wp_enqueue_style(
             'beautiful-rescues-cart',
             BR_PLUGIN_URL . 'public/css/cart.css',
-            array(),
+            $dependencies,
             BR_VERSION
         );
-
-        // Add Elementor dependency if Elementor is active
-        if (defined('ELEMENTOR_VERSION')) {
-            wp_enqueue_style(
-                'beautiful-rescues-cart',
-                BR_PLUGIN_URL . 'public/css/cart.css',
-                array('elementor-frontend'),
-                BR_VERSION
-            );
-        }
 
         wp_enqueue_script(
             'beautiful-rescues-cart',
             BR_PLUGIN_URL . 'public/js/cart.js',
-            array('jquery'),
+            array('jquery', 'elementor-frontend'),
             BR_VERSION,
             true
         );

@@ -139,7 +139,7 @@ class BR_Beautiful_Rescues {
         $this->register_admin_menu();
         
         // Enqueue scripts and styles
-        add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
+        add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'), 20);  // Higher priority number ensures it loads after Elementor
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
         
         // Add template filters
@@ -271,11 +271,14 @@ class BR_Beautiful_Rescues {
      * Enqueue scripts and styles
      */
     public function enqueue_scripts() {
+        // Add Elementor dependency if Elementor is active
+        $dependencies = defined('ELEMENTOR_VERSION') ? array('elementor-frontend') : array();
+        
         // Enqueue gallery scripts
         wp_enqueue_style(
             'beautiful-rescues-gallery',
             BR_PLUGIN_URL . 'public/css/gallery.css',
-            array(),
+            $dependencies,
             BR_VERSION
         );
 
@@ -283,14 +286,14 @@ class BR_Beautiful_Rescues {
         wp_enqueue_style(
             'beautiful-rescues-copyright',
             BR_PLUGIN_URL . 'public/css/copyright-protection.css',
-            array('beautiful-rescues-gallery'),
+            array_merge($dependencies, array('beautiful-rescues-gallery')),
             BR_VERSION
         );
 
         wp_enqueue_script(
             'beautiful-rescues-gallery',
             BR_PLUGIN_URL . 'public/js/gallery.js',
-            array('jquery'),
+            array('jquery', 'elementor-frontend'),
             BR_VERSION,
             true
         );
@@ -299,27 +302,17 @@ class BR_Beautiful_Rescues {
         wp_enqueue_style(
             'beautiful-rescues-cart',
             BR_PLUGIN_URL . 'public/css/cart.css',
-            array(),
+            $dependencies,
             BR_VERSION
         );
 
         wp_enqueue_script(
             'beautiful-rescues-cart',
             BR_PLUGIN_URL . 'public/js/cart.js',
-            array('jquery'),
+            array('jquery', 'elementor-frontend'),
             BR_VERSION,
             true
         );
-
-        // Add Elementor integration styles if Elementor is active
-        if (defined('ELEMENTOR_VERSION')) {
-            wp_enqueue_style(
-                'beautiful-rescues-elementor',
-                BR_PLUGIN_URL . 'public/css/elementor-integration.css',
-                array('elementor-frontend'),
-                BR_VERSION
-            );
-        }
 
         // Check if we're on the checkout page
         $is_checkout_page = get_page_template_slug() === 'checkout.php';
@@ -336,14 +329,14 @@ class BR_Beautiful_Rescues {
             wp_enqueue_style(
                 'beautiful-rescues-checkout',
                 BR_PLUGIN_URL . 'public/css/verification.css',
-                array(),
+                $dependencies,
                 BR_VERSION
             );
 
             wp_enqueue_script(
                 'beautiful-rescues-checkout',
                 BR_PLUGIN_URL . 'public/js/verification.js',
-                array('jquery'),
+                array('jquery', 'elementor-frontend'),
                 BR_VERSION,
                 true
             );
@@ -361,7 +354,7 @@ class BR_Beautiful_Rescues {
                 'i18n' => array(
                     'noImages' => __('No images selected', 'beautiful-rescues'),
                     'thankYou' => __('Thank you for your request!', 'beautiful-rescues'),
-                    'verificationReceived' => __('Your verification has been received. We will review it and get back to you soon.', 'beautiful-rescues'),
+                    'verificationReceived' => __('Your verification has been received. We will review it and get back to you soon. Redirecting to verification review page...', 'beautiful-rescues'),
                     'error' => __('An error occurred. Please try again.', 'beautiful-rescues')
                 )
             ));
