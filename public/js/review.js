@@ -90,7 +90,13 @@ jQuery(document).ready(function($) {
                     totalPages = response.data.total_pages;
                     renderPagination();
                 } else {
-                    donationList.html('<div class="error">Error loading donations: ' + response.data + '</div>');
+                    // Check if the error is related to permissions
+                    if (response.data && response.data.includes('logged in as an administrator')) {
+                        // Show a message with a link to the login page
+                        donationList.html('<div class="error">You need to be logged in as an administrator to view donations. <a href="' + window.location.href + '">Click here to log in</a>.</div>');
+                    } else {
+                        donationList.html('<div class="error">Error loading donations: ' + response.data + '</div>');
+                    }
                 }
             },
             error: function() {
@@ -128,7 +134,13 @@ jQuery(document).ready(function($) {
                     }
                     renderDonationDetails(response.data);
                 } else {
-                    detailsPanel.html('<div class="error">Error loading details: ' + response.data + '</div>');
+                    // Check if the error is related to permissions
+                    if (response.data && response.data.includes('logged in as an administrator')) {
+                        // Show a message with a link to the login page
+                        detailsPanel.html('<div class="error">You need to be logged in as an administrator to view donation details. <a href="' + window.location.href + '">Click here to log in</a>.</div>');
+                    } else {
+                        detailsPanel.html('<div class="error">Error loading details: ' + response.data + '</div>');
+                    }
                 }
             },
             error: function() {
@@ -156,24 +168,22 @@ jQuery(document).ready(function($) {
                     loadDonations();
                     loadDonationDetails(donationId);
                 } else {
-                    detailsPanel.find('.donation-actions').html(
-                        '<div class="error">Error updating status: ' + response.data + '</div>' 
-                        // +
-                        // '<div class="donation-actions">' +
-                        // '<button class="verify-button">Verify</button>' +
-                        // '<button class="reject-button">Reject</button>' +
-                        // '</div>'
-                    );
+                    // Check if the error is related to permissions
+                    if (response.data && response.data.includes('logged in as an administrator')) {
+                        // Show a message with a link to the login page
+                        detailsPanel.find('.donation-actions').html(
+                            '<div class="error">You need to be logged in as an administrator to update donation status. <a href="' + window.location.href + '">Click here to log in</a>.</div>'
+                        );
+                    } else {
+                        detailsPanel.find('.donation-actions').html(
+                            '<div class="error">Error updating status: ' + response.data + '</div>'
+                        );
+                    }
                 }
             },
             error: function() {
                 detailsPanel.find('.donation-actions').html(
-                    '<div class="error">Failed to update status. Please try again.</div>' 
-                    // +
-                    // '<div class="donation-actions">' +
-                    // '<button class="verify-button">Verify</button>' +
-                    // '<button class="reject-button">Reject</button>' +
-                    // '</div>'
+                    '<div class="error">Failed to update status. Please try again.</div>'
                 );
             }
         });

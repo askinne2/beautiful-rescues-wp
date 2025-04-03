@@ -68,14 +68,20 @@ class BR_Donation_Review {
             return;
         }
 
-        $this->debug->log('Enqueuing review scripts and styles');
-
+        // Always enqueue the CSS for the login form
         wp_enqueue_style(
             'beautiful-rescues-review',
             BR_PLUGIN_URL . 'public/css/review.css',
             array(),
             BR_VERSION
         );
+
+        // Only enqueue scripts if the user is logged in and has the required permissions
+        if (!current_user_can('edit_posts')) {
+            return;
+        }
+
+        $this->debug->log('Enqueuing review scripts and styles');
 
         wp_enqueue_script(
             'beautiful-rescues-review',
@@ -114,8 +120,40 @@ class BR_Donation_Review {
             'can_edit_posts' => current_user_can('edit_posts')
         ]);
 
+        // Check user permissions - if not logged in or doesn't have permission, return login form
         if (!current_user_can('edit_posts')) {
-            return '<p>You do not have permission to view this page.</p>';
+            ob_start();
+            ?>
+            <div class="donation-review-login-container">
+                <h1>Donation Review Login</h1>
+                <p>Please log in with your administrator account to review donations.</p>
+                <?php
+                // Get the current URL to redirect back after login
+                $redirect_to = esc_url($_SERVER['REQUEST_URI']);
+                
+                // Display the login form
+                $args = array(
+                    'redirect' => $redirect_to,
+                    'form_id' => 'donation-review-login-form',
+                    'label_username' => __('Username'),
+                    'label_password' => __('Password'),
+                    'label_remember' => __('Remember Me'),
+                    'label_log_in' => __('Log In'),
+                    'remember' => true,
+                );
+                
+                // Remove the "Register" link from the login form
+                add_filter('login_form_bottom', function($html) {
+                    return preg_replace('/<p class="register">.*?<\/p>/', '', $html);
+                });
+                
+                // Display the login form
+                wp_login_form($args);
+                ?>
+            </div>
+            <?php
+            $output = ob_get_clean();
+            return $output;
         }
 
         ob_start();
@@ -179,7 +217,7 @@ class BR_Donation_Review {
         $this->debug->log('Donation review AJAX request received', $_POST);
 
         if (!current_user_can('edit_posts')) {
-            wp_send_json_error('Insufficient permissions');
+            wp_send_json_error('You need to be logged in as an administrator to view donations.');
             return;
         }
 
@@ -299,7 +337,8 @@ class BR_Donation_Review {
         check_ajax_referer('beautiful_rescues_review_nonce', 'nonce');
 
         if (!current_user_can('edit_posts')) {
-            wp_send_json_error('Permission denied');
+            wp_send_json_error('You need to be logged in as an administrator to view donation details.');
+            return;
         }
 
         $donation_id = intval($_POST['donation_id']);
@@ -307,6 +346,7 @@ class BR_Donation_Review {
 
         if (!$donation || $donation->post_type !== 'verification') {
             wp_send_json_error('Invalid verification ID');
+            return;
         }
 
         $this->debug->log('Getting verification details for ID: ' . $donation_id);
@@ -359,7 +399,8 @@ class BR_Donation_Review {
         check_ajax_referer('beautiful_rescues_review_nonce', 'nonce');
 
         if (!current_user_can('edit_posts')) {
-            wp_send_json_error('Permission denied');
+            wp_send_json_error('You need to be logged in as an administrator to update donation status.');
+            return;
         }
 
         $donation_id = intval($_POST['donation_id']);
@@ -367,6 +408,7 @@ class BR_Donation_Review {
 
         if (!in_array($status, array('verified', 'rejected'))) {
             wp_send_json_error('Invalid status');
+            return;
         }
 
         $this->debug->log('Updating donation status', array(
@@ -395,7 +437,7 @@ class BR_Donation_Review {
         check_ajax_referer('beautiful_rescues_review_nonce', 'nonce');
 
         if (!current_user_can('edit_posts')) {
-            wp_send_json_error('Permission denied');
+            wp_send_json_error('You need to be logged in as an administrator to update donation status.');
             return;
         }
 

@@ -159,4 +159,7 @@ if (defined('ELEMENTOR_VERSION')) {
             BR_VERSION
         );
     });
-} 
+}
+
+// Prevent new user registration
+add_filter('option_users_can_register', '__return_false'); 

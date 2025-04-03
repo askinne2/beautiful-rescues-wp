@@ -4,6 +4,7 @@
     padding: 2rem;
     max-width: 1600px;
     margin: 0 auto;
+    font-family: var(--e-global-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif);
 }
 
 /* Left Panel - Donation List */
@@ -24,7 +25,7 @@
 .donation-review-header h1 {
     margin: 0 0 1rem;
     font-size: 1.8rem;
-    color: #1d2327;
+    color: var(--e-global-color-text, #1d2327);
 }
 
 .review-filters {
@@ -36,9 +37,17 @@
 
 .status-filter,
 .search-filter {
-    padding: 0.5rem;
+    padding: 0.75rem;
     border: 1px solid #ddd;
     border-radius: 4px;
+    font-size: 1rem;
+    transition: border-color 0.2s ease;
+}
+
+.status-filter:focus,
+.search-filter:focus {
+    border-color: var(--e-global-color-primary, #F0759E);
+    outline: none;
 }
 
 .search-filter {
@@ -68,7 +77,7 @@
 }
 
 .donation-item.selected {
-    border-color: #007cba;
+    border-color: var(--e-global-color-primary, #F0759E);
     background: #f0f7ff;
 }
 
@@ -92,11 +101,13 @@
     margin: 0 0 0.5rem;
     font-size: 1.1rem;
     font-weight: bold;
+    color: var(--e-global-color-text, #1d2327);
 }
 
 .donor-info {
     font-size: 0.9rem;
     margin: 0;
+    color: var(--e-global-color-text, #1d2327);
 }
 
 .donation-date {
@@ -128,7 +139,7 @@
 }
 
 .review-button {
-    background: #0073aa;
+    background: var(--e-global-color-primary, #F0759E);
     color: #fff;
     border: none;
     padding: 0.5rem 1rem;
@@ -138,7 +149,7 @@
 }
 
 .review-button:hover {
-    background: #005177;
+    background: var(--e-global-color-secondary, #E04B7C);
 }
 
 /* Right Panel - Donation Details */
@@ -170,11 +181,12 @@
 .donor-details h3 {
     margin: 0 0 1rem;
     font-size: 1.2rem;
-    color: #1d2327;
+    color: var(--e-global-color-text, #1d2327);
 }
 
 .donor-details p {
     margin: 0.5rem 0;
+    color: var(--e-global-color-text, #1d2327);
 }
 
 .verification-file img,
@@ -215,7 +227,7 @@
 .download-link {
     display: inline-block;
     padding: 0.25rem 0.75rem;
-    background: #2271b1;
+    background: var(--e-global-color-primary, #F0759E);
     color: #fff;
     text-decoration: none;
     border-radius: 3px;
@@ -224,7 +236,7 @@
 }
 
 .download-link:hover {
-    background: #135e96;
+    background: var(--e-global-color-secondary, #E04B7C);
 }
 
 .donation-actions {
@@ -303,12 +315,17 @@
     border-radius: 4px;
     background: #fff;
     cursor: pointer;
+    transition: all 0.2s ease;
 }
 
 .page-button.active {
-    background: #007cba;
+    background: var(--e-global-color-primary, #F0759E);
     color: white;
-    border-color: #007cba;
+    border-color: var(--e-global-color-primary, #F0759E);
+}
+
+.page-button:hover:not(.active) {
+    background: #f0f0f0;
 }
 
 /* Responsive Design */
@@ -368,4 +385,141 @@
         max-width: 500px;
         z-index: 1000;
     }
+}
+
+/* Login Form Styles */
+.donation-review-login-container {
+    max-width: 400px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    position: relative;
+    z-index: 10;
+}
+
+.donation-review-login-container h1 {
+    margin-bottom: 1rem;
+    color: var(--e-global-color-text, #333);
+    font-size: 1.8rem;
+}
+
+.donation-review-login-container p {
+    margin-bottom: 1.5rem;
+    color: var(--e-global-color-text, #666);
+}
+
+#donation-review-login-form {
+    text-align: left;
+}
+
+#donation-review-login-form label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--e-global-color-text, #333);
+}
+
+#donation-review-login-form input[type="text"],
+#donation-review-login-form input[type="password"] {
+    width: 100%;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    transition: border-color 0.2s ease;
+}
+
+#donation-review-login-form input[type="text"]:focus,
+#donation-review-login-form input[type="password"]:focus {
+    border-color: var(--e-global-color-primary, #F0759E);
+    outline: none;
+}
+
+#donation-review-login-form input[type="submit"] {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: var(--e-global-color-primary, #F0759E);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.2s;
+}
+
+#donation-review-login-form input[type="submit"]:hover {
+    background-color: var(--e-global-color-secondary, #E04B7C);
+}
+
+#donation-review-login-form .forgetmenot {
+    margin-bottom: 1rem;
+}
+
+#donation-review-login-form .forgetmenot label {
+    display: inline;
+    margin-left: 0.5rem;
+}
+
+/* Override Elementor styles for the login form */
+.elementor-widget-shortcode .donation-review-login-container {
+    margin: 2rem auto;
+    width: 100%;
+    max-width: 400px;
+}
+
+/* Error message styles */
+.error {
+    padding: 1rem;
+    background-color: #f8d7da;
+    color: #721c24;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+.error a {
+    color: #721c24;
+    text-decoration: underline;
+    font-weight: bold;
+}
+
+.error a:hover {
+    text-decoration: none;
+}
+
+/* Login message styles */
+.donation-review-login-message {
+    padding: 1rem;
+    background-color: #f8f9fa;
+    color: var(--e-global-color-text, #333);
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    text-align: center;
+    font-size: 1.1rem;
+}
+
+/* Loading state */
+.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+/* Loading spinner */
+.loading::after {
+    content: '';
+    display: inline-block;
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+    margin-left: 0.5rem;
+    vertical-align: middle;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
 } 

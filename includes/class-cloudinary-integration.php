@@ -231,12 +231,6 @@ class BR_Cloudinary_Integration {
 
         $url = "https://res.cloudinary.com/{$this->cloud_name}/image/upload/{$transformations_string}/{$public_id}";
         
-        $this->debug->log('Generated Cloudinary URL', array(
-            'public_id' => $public_id,
-            'options' => $options,
-            'transformations' => $transformations,
-            'url' => $url
-        ), 'info');
 
         return $url;
     }
@@ -517,11 +511,6 @@ class BR_Cloudinary_Integration {
 
         // Generate Cloudinary image source
         $image_src = $this->generate_image_url($public_id);
-        
-        $this->debug->log('Generated Cloudinary image source', array(
-            'public_id' => $public_id,
-            'image_src' => $image_src
-        ), 'info');
 
         return $image_src;
     }
