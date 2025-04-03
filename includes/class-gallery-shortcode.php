@@ -40,7 +40,7 @@ class BR_Gallery_Shortcode {
             'ajaxurl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('beautiful_rescues_gallery_nonce'),
             'maxFileSize' => (int) (get_option('beautiful_rescues_options')['max_file_size'] ?? 5) * 1024 * 1024,
-            'watermarkUrl' => get_option('watermark_url', 'https://res.cloudinary.com/dgnb4yyrc/image/upload/v1743356531/br-watermark-2025_2x_baljip.webp'),
+            'watermarkUrl' => get_option('watermark_url', 'https://res.cloudinary.com/dgnb4yyrc/image/upload/v1743356913/br-watermark-2025_2x_uux1x2.webp'),
             'i18n' => array(
                 'loadMore' => __('Load More', 'beautiful-rescues'),
                 'noMoreImages' => __('No more images to load', 'beautiful-rescues'),

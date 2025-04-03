@@ -332,22 +332,22 @@ class BR_Beautiful_Rescues {
         // Enqueue checkout scripts
         if ($is_checkout_page) {
             $this->debug->log('Enqueuing checkout scripts', array(
-                'checkout_css_path' => BR_PLUGIN_URL . 'public/css/checkout.css',
-                'checkout_js_path' => BR_PLUGIN_URL . 'public/js/checkout.js',
-                'file_exists_css' => file_exists(BR_PLUGIN_DIR . 'public/css/checkout.css'),
-                'file_exists_js' => file_exists(BR_PLUGIN_DIR . 'public/js/checkout.js')
+                'checkout_css_path' => BR_PLUGIN_URL . 'public/css/verification.css',
+                'checkout_js_path' => BR_PLUGIN_URL . 'public/js/verification.js',
+                'file_exists_css' => file_exists(BR_PLUGIN_DIR . 'public/css/verification.css'),
+                'file_exists_js' => file_exists(BR_PLUGIN_DIR . 'public/js/verification.js')
             ), 'info');
 
             wp_enqueue_style(
                 'beautiful-rescues-checkout',
-                BR_PLUGIN_URL . 'public/css/checkout.css',
+                BR_PLUGIN_URL . 'public/css/verification.css',
                 array(),
                 BR_VERSION
             );
 
             wp_enqueue_script(
                 'beautiful-rescues-checkout',
-                BR_PLUGIN_URL . 'public/js/checkout.js',
+                BR_PLUGIN_URL . 'public/js/verification.js',
                 array('jquery'),
                 BR_VERSION,
                 true
@@ -357,7 +357,7 @@ class BR_Beautiful_Rescues {
                 'ajaxurl' => admin_url('admin-ajax.php'),
                 'nonce' => wp_create_nonce('beautiful_rescues_verification_nonce'),
                 'homeUrl' => home_url(),
-                'watermarkUrl' => get_option('watermark_url', 'https://res.cloudinary.com/dgnb4yyrc/image/upload/v1743356531/br-watermark-2025_2x_baljip.webp'),
+                'watermarkUrl' => get_option('watermark_url', 'https://res.cloudinary.com/dgnb4yyrc/image/upload/v1743356913/br-watermark-2025_2x_uux1x2.webp'),
                 'debug' => array(
                     'enabled' => $this->debug->is_enabled(),
                     'browserEnabled' => $this->debug->is_browser_debug_enabled()
@@ -365,6 +365,7 @@ class BR_Beautiful_Rescues {
                 'i18n' => array(
                     'noImages' => __('No images selected', 'beautiful-rescues'),
                     'thankYou' => __('Thank you for your donation! We will review your verification and get back to you soon.', 'beautiful-rescues'),
+                    'verificationReceived' => __('Your verification has been received. We will review it and get back to you soon.', 'beautiful-rescues'),
                     'error' => __('An error occurred. Please try again.', 'beautiful-rescues')
                 )
             ));
@@ -374,7 +375,7 @@ class BR_Beautiful_Rescues {
         wp_localize_script('beautiful-rescues-gallery', 'beautifulRescuesGallery', array(
             'ajaxurl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('beautiful_rescues_gallery_nonce'),
-            'watermarkUrl' => get_option('watermark_url', 'https://res.cloudinary.com/dgnb4yyrc/image/upload/v1743356531/br-watermark-2025_2x_baljip.webp'),
+            'watermarkUrl' => get_option('watermark_url', 'https://res.cloudinary.com/dgnb4yyrc/image/upload/v1743356913/br-watermark-2025_2x_uux1x2.webp'),
             'debug' => array(
                 'enabled' => $this->debug->is_enabled(),
                 'browserEnabled' => $this->debug->is_browser_debug_enabled()
@@ -395,7 +396,7 @@ class BR_Beautiful_Rescues {
             'ajaxurl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('beautiful_rescues_cart_nonce'),
             'checkoutUrl' => home_url('/checkout/'),
-            'watermarkUrl' => get_option('watermark_url', 'https://res.cloudinary.com/dgnb4yyrc/image/upload/v1743356531/br-watermark-2025_2x_baljip.webp'),
+            'watermarkUrl' => get_option('watermark_url', 'https://res.cloudinary.com/dgnb4yyrc/image/upload/v1743356913/br-watermark-2025_2x_uux1x2.webp'),
             'debug' => array(
                 'enabled' => $this->debug->is_enabled(),
                 'browserEnabled' => $this->debug->is_browser_debug_enabled()

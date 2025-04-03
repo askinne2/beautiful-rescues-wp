@@ -229,7 +229,7 @@ class BR_Settings {
     }
 
     public function render_watermark_url_field() {
-        $value = get_option('watermark_url', 'https://res.cloudinary.com/dgnb4yyrc/image/upload/v1743356531/br-watermark-2025_2x_baljip.webp');
+        $value = get_option('watermark_url', 'https://res.cloudinary.com/dgnb4yyrc/image/upload/v1743356913/br-watermark-2025_2x_uux1x2.webp');
         ?>
         <input type="text" name="watermark_url" 
                value="<?php echo esc_attr($value); ?>" class="regular-text">

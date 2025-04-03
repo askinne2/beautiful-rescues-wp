@@ -7,6 +7,57 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+/* Checkout Page Styles */
+.checkout-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.checkout-container {
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.checkout-header {
+    text-align: left;
+    margin-bottom: 2rem;
+}
+
+.checkout-header h1 {
+    margin: 0 0 1rem;
+    color: #333;
+    font-size: 2rem;
+}
+
+.checkout-header p {
+    margin: 0;
+    color: #666;
+    font-size: 1.1rem;
+}
+
+.checkout-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: start;
+}
+
+.checkout-column {
+    background: white;
+    border-radius: 8px;
+    padding: 2rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.selected-images-preview h2 {
+    margin: 0 0 1.5rem;
+    color: #333;
+    font-size: 1.5rem;
+}
+
+/* Form styles */
 .form-group {
     margin-bottom: 1.5rem;
 }
@@ -14,18 +65,53 @@
 .form-group label {
     display: block;
     margin-bottom: 0.5rem;
-    font-weight: 600;
     color: #333;
+    font-weight: bold;
+    font-size: 0.95rem;
+}
+
+/* Required field styling */
+.form-group label:has(+ input[required]),
+.form-group label:has(+ textarea[required]) {
+    position: relative;
+}
+
+.form-group label:has(+ input[required])::after,
+.form-group label:has(+ textarea[required])::after {
+    content: " *";
+    color: var(--e-global-color-danger, #dc3545);
+    font-weight: bold;
+}
+
+/* Alternative styling for browsers that don't support :has() */
+.form-group label:after {
+    content: attr(data-required);
+    color: var(--e-global-color-danger, #dc3545);
+    font-weight: bold;
+}
+
+.form-group p.help-text {
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
 }
 
 .form-group input[type="text"],
 .form-group input[type="email"],
-.form-group input[type="tel"] {
+.form-group input[type="tel"],
+.form-group textarea {
     width: 100%;
     padding: 0.75rem;
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 1rem;
+    transition: border-color 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    border-color: var(--e-global-color-primary, #F0759E);
+    outline: none;
 }
 
 .form-group input[type="file"] {
@@ -41,55 +127,79 @@
     border-color: var(--e-global-color-primary, #F0759E);
 }
 
-.image-preview {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 1rem;
-    margin: 1rem 0;
+.form-group textarea {
+    resize: vertical;
+    min-height: 100px;
 }
 
-.image-preview img {
+.form-help {
+    display: block;
+    margin-top: 0.5rem;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.submit-donation, .submit-button {
     width: 100%;
-    height: 150px;
-    object-fit: cover;
-    border-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.submit-button {
+    padding: 1rem;
     background: var(--e-global-color-primary, #F0759E);
     color: var(--e-global-color-background, #ffffff);
-    padding: 1rem 2rem;
     border: none;
     border-radius: 4px;
-    font-size: 1rem;
+    font-size: 1.1rem;
+    font-weight: 500;
     cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-
-.submit-button:hover {
-    background: var(--e-global-color-secondary, #E04B7C);
-}
-
-.form-messages {
+    transition: all 0.2s ease;
     margin-top: 1rem;
-    padding: 1rem;
-    border-radius: 4px;
 }
 
-.form-messages .success {
-    background: var(--e-global-color-success, #dff0d8);
-    color: var(--e-global-color-success-text, #3c763d);
-    border: 1px solid var(--e-global-color-success-border, #d6e9c6);
+.submit-donation:hover, .submit-button:hover {
+    background: var(--e-global-color-secondary, #E04B7C);
+    transform: translateY(-1px);
 }
 
-.form-messages .error {
-    background: var(--e-global-color-danger, #f2dede);
-    color: var(--e-global-color-danger-text, #a94442);
-    border: 1px solid var(--e-global-color-danger-border, #ebccd1);
+.submit-donation:active, .submit-button:active {
+    transform: translateY(0);
+}
+
+.submit-donation:disabled, .submit-button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+/* Form validation styles */
+.form-group input.error,
+.form-group textarea.error {
+    border-color: var(--e-global-color-danger, #dc3545);
+    background-color: var(--e-global-color-background, #fff8f8);
+}
+
+.form-group input.error:focus,
+.form-group textarea.error:focus {
+    border-color: var(--e-global-color-danger, #dc3545);
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.form-group input.error::placeholder,
+.form-group textarea.error::placeholder {
+    color: var(--e-global-color-danger, #dc3545);
+}
+
+.form-group input.error + .form-help,
+.form-group textarea.error + .form-help {
+    color: var(--e-global-color-danger, #dc3545);
 }
 
 /* Loading state */
+.donation-verification-form.submitting {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.donation-verification-form.submitting .submit-donation {
+    cursor: not-allowed;
+}
+
 .form-group.loading {
     position: relative;
 }
@@ -122,13 +232,8 @@
     z-index: 1;
 }
 
-@keyframes spin {
-    0% { transform: translate(-50%, -50%) rotate(0deg); }
-    100% { transform: translate(-50%, -50%) rotate(360deg); }
-}
-
 /* Loading Overlay */
-.verification-loading-overlay {
+.verification-loading-overlay, .checkout-loading-overlay {
     display: none;
     position: fixed;
     top: 0;
@@ -141,11 +246,11 @@
     align-items: center;
 }
 
-.verification-loading-overlay.active {
+.verification-loading-overlay.active, .checkout-loading-overlay.active {
     display: flex;
 }
 
-.verification-spinner {
+.verification-spinner, .checkout-spinner {
     width: 50px;
     height: 50px;
     border: 3px solid #f3f3f3;
@@ -157,6 +262,25 @@
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+/* Form Messages */
+.form-messages {
+    margin-top: 1rem;
+    padding: 1rem;
+    border-radius: 4px;
+}
+
+.form-messages .success {
+    background: var(--e-global-color-success, #dff0d8);
+    color: var(--e-global-color-success-text, #3c763d);
+    border: 1px solid var(--e-global-color-success-border, #d6e9c6);
+}
+
+.form-messages .error {
+    background: var(--e-global-color-danger, #f2dede);
+    color: var(--e-global-color-danger-text, #a94442);
+    border: 1px solid var(--e-global-color-danger-border, #ebccd1);
 }
 
 /* Empty Cart Notice */
@@ -181,7 +305,7 @@
     color: var(--e-global-color-background, #ffffff);
     text-decoration: none;
     border-radius: 4px;
-    font-weight: bold;
+    font-weight: 500;
     transition: background-color 0.2s ease;
 }
 
@@ -262,7 +386,7 @@
 }
 
 /* Success Message */
-.verification-success {
+.verification-success, .checkout-success {
     text-align: center;
     padding: 2rem;
     background: #f8f8f8;
@@ -270,12 +394,79 @@
     margin: 0;
 }
 
-.verification-success h2 {
+.verification-success h2, .checkout-success h2 {
     color: var(--e-global-color-primary, #F0759E);
     margin-bottom: 1rem;
 }
 
-.verification-success p {
+.verification-success p, .checkout-success p {
     color: #666;
-    margin-bottom: 1rem;
-} 
+    margin-bottom: 1.5rem;
+}
+
+.verification-success .button, .checkout-success .button {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    background: var(--e-global-color-primary, #F0759E);
+    color: var(--e-global-color-background, #ffffff);
+    text-decoration: none;
+    border-radius: 4px;
+    font-weight: bold;
+    transition: background-color 0.2s ease;
+}
+
+.verification-success .button:hover, .checkout-success .button:hover {
+    background: var(--e-global-color-secondary, #E04B7C);
+    color: var(--e-global-color-background, #ffffff);
+
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+    .checkout-container {
+        max-width: 90%;
+    }
+}
+
+@media (max-width: 768px) {
+    .checkout-body {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    .selected-images-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .checkout-header h1 {
+        font-size: 1.75rem;
+    }
+
+    .checkout-header p {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .selected-images-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .checkout-column {
+        padding: 1.5rem;
+    }
+}
+
+/* Required field note */
+.required-field-note {
+    margin-top: 1.5rem;
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.required-field-note .required-mark {
+    color: var(--e-global-color-danger, #dc3545);
+    font-weight: bold;
+}
+
+/* Form group styles */ 

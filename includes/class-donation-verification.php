@@ -63,38 +63,41 @@ class BR_Donation_Verification {
         ob_start();
         ?>
         <form id="<?php echo esc_attr($atts['form_id']); ?>" class="beautiful-rescues-verification-form" method="post" enctype="multipart/form-data">
+        <div class="required-field-note">
+                <p><span class="required-mark">*</span> <?php _e('Required fields', 'beautiful-rescues'); ?></p>
+            </div>
             <div class="form-group">
-                <label for="_donor_first_name"><?php _e('First Name', 'beautiful-rescues'); ?> *</label>
+                <label for="_donor_first_name" data-required=" *"><?php _e('First Name', 'beautiful-rescues'); ?></label>
                 <input type="text" id="_donor_first_name" name="_donor_first_name" required>
             </div>
             
             <div class="form-group">
-                <label for="_donor_last_name"><?php _e('Last Name', 'beautiful-rescues'); ?> *</label>
+                <label for="_donor_last_name" data-required=" *"><?php _e('Last Name', 'beautiful-rescues'); ?></label>
                 <input type="text" id="_donor_last_name" name="_donor_last_name" required>
             </div>
             
             <div class="form-group">
-                <label for="_donor_email"><?php _e('Email Address', 'beautiful-rescues'); ?> *</label>
+                <label for="_donor_email" data-required=" *"><?php _e('Email Address', 'beautiful-rescues'); ?></label>
                 <input type="email" id="_donor_email" name="_donor_email" required>
             </div>
             
             <div class="form-group">
-                <label for="_donor_phone"><?php _e('Phone Number', 'beautiful-rescues'); ?> *</label>
+                <label for="_donor_phone" data-required=" *"><?php _e('Phone Number', 'beautiful-rescues'); ?></label>
                 <input type="tel" id="_donor_phone" name="_donor_phone" required>
             </div>
             
             <?php if ($atts['show_image_upload']) : ?>
             <div class="form-group">
-                <label for="_selected_images"><?php _e('Select Images', 'beautiful-rescues'); ?> *</label>
+                <label for="_selected_images" data-required=" *"><?php _e('Select Images', 'beautiful-rescues'); ?></label>
                 <div id="image-preview" class="image-preview"></div>
                 <input type="file" id="_selected_images" name="_selected_images" accept="image/*,application/pdf" multiple required>
             </div>
             <?php endif; ?>
             
             <div class="form-group">
-                <label for="_verification_file"><?php _e('Verification File (Image or PDF)', 'beautiful-rescues'); ?> *</label>
+                <label for="_verification_file" data-required=" *"><?php _e('Verification File (Image or PDF)', 'beautiful-rescues'); ?></label>
                 <input type="file" id="_verification_file" name="_verification_file" accept="image/*,.pdf" required>
-                <p class="help-text"><?php _e('Upload a screenshot or PDF of your verification', 'beautiful-rescues'); ?></p>
+                <p class="help-text"><?php _e('Upload an Image (JPG or PNG) or PDF of your verification', 'beautiful-rescues'); ?></p>
             </div>
 
             <div class="form-group">
@@ -107,12 +110,12 @@ class BR_Donation_Verification {
             <input type="hidden" name="source" value="<?php echo esc_attr($atts['source']); ?>">
             
             <div class="form-group">
-                <button type="submit" class="submit-button"><?php 
-                    echo esc_html($atts['submit_button_text']); 
-                ?></button>
+                <button type="submit" class="submit-button"><?php echo esc_html($atts['submit_button_text']); ?></button>
             </div>
             
-            <div id="form-messages" class="form-messages"></div>
+            <div class="form-messages" id="form-messages"></div>
+            
+            
         </form>
         <?php
         return ob_get_clean();

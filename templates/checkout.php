@@ -56,7 +56,7 @@ while (have_posts()) :
                     // Get the donation verification instance and render the form
                     $verification = BR_Donation_Verification::get_instance();
                     echo $verification->render_verification_form(array(
-                        'source' => 'checkout',
+                        'source' => 'verification',
                         'show_image_upload' => false, // We already have selected images
                         'form_id' => 'checkout-verification-form',
                         'submit_button_text' => __('Complete Checkout', 'beautiful-rescues')
