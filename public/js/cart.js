@@ -235,7 +235,34 @@
             beautifulRescuesDebug.log('Selection changed event received:', data);
             
             if (data && data.selectedImages) {
-                selectedImages = data.selectedImages.filter(img => img && img.id && img.url);
+                // Create a map of existing images by ID for quick lookup
+                const existingImagesMap = {};
+                selectedImages.forEach(img => {
+                    if (img && img.id) {
+                        existingImagesMap[img.id] = img;
+                    }
+                });
+                
+                // Update with new selections, preserving existing data
+                selectedImages = data.selectedImages.filter(img => img && img.id && img.url)
+                    .map(img => {
+                        // If we already have this image, preserve its data
+                        if (existingImagesMap[img.id]) {
+                            return {
+                                ...existingImagesMap[img.id],
+                                ...img,
+                                url: img.url.replace('http://', 'https://')
+                            };
+                        }
+                        return {
+                            ...img,
+                            url: img.url.replace('http://', 'https://')
+                        };
+                    });
+                
+                beautifulRescuesDebug.log('Updated selected images:', selectedImages);
+                
+                // Update localStorage
                 localStorage.setItem('beautifulRescuesSelectedImages', JSON.stringify(selectedImages));
                 updateSelectedImagesPreview();
             }

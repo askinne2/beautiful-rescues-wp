@@ -124,49 +124,36 @@ class BR_Beautiful_Rescues {
      * Initialize the plugin
      */
     public function init() {
-        $debug = BR_Debug::get_instance();
-
-        // Load text domain
-        load_plugin_textdomain('beautiful-rescues', false, dirname(plugin_basename(__FILE__)) . '/languages');
-        $debug->log('Text domain loaded', null, 'info');
-
-        // Register post types on every page load
+        $this->debug->log('Initializing Beautiful Rescues plugin', null, 'info');
+        
+        // Register post types
         self::register_post_types();
-        $debug->log('Post types registered during init', null, 'info');
-
+        
         // Register taxonomies
         $this->register_taxonomies();
-        $debug->log('Taxonomies registered', null, 'info');
-
+        
         // Register shortcodes
         self::register_shortcodes();
-        $debug->log('Shortcodes registered during init', null, 'info');
-
-        // Initialize components
-        $this->init_components();
-        $debug->log('Components initialized', null, 'info');
-
+        
+        // Register admin menu
+        $this->register_admin_menu();
+        
         // Enqueue scripts and styles
         add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
-        $debug->log('Scripts and styles registered', null, 'info');
-
-        // Add admin notice if Cloudinary credentials are missing
-        if (is_admin()) {
-            add_action('admin_notices', array($this, 'check_cloudinary_credentials'));
-            $debug->log('Admin notices registered', null, 'info');
-        }
-
-        // Register admin menu
-        add_action('admin_menu', array($this, 'register_admin_menu'));
-        $debug->log('Admin menu registration hook added', null, 'info');
-
+        
         // Add template filters
-        add_filter('single_template', array($this, 'load_donation_template'));
-        add_filter('template_include', array($this, 'load_checkout_template'));
-        $debug->log('Template filters added', null, 'info');
-
-        $debug->log('Beautiful Rescues initialization completed', null, 'info');
+        add_filter('template_include', array($this, 'load_checkout_template'), 99);
+        add_filter('template_include', array($this, 'load_donation_template'), 99);
+        
+        // Check Cloudinary credentials
+        add_action('admin_init', array($this, 'check_cloudinary_credentials'));
+        
+        // Initialize components
+        $this->init_components();
+        
+        // Add AJAX handlers
+        add_action('wp_ajax_br_clear_gallery_transients', array($this, 'ajax_clear_gallery_transients'));
     }
 
     /**
@@ -959,5 +946,68 @@ class BR_Beautiful_Rescues {
             return get_page_link($gallery_page->ID);
         }
         return home_url('/gallery');
+    }
+
+    /**
+     * AJAX handler for clearing gallery transients
+     */
+    public function ajax_clear_gallery_transients() {
+        // Check nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'br_clear_gallery_transients')) {
+            wp_send_json_error(array('message' => __('Security check failed.', 'beautiful-rescues')));
+            return;
+        }
+        
+        // Check user capabilities
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('You do not have permission to perform this action.', 'beautiful-rescues')));
+            return;
+        }
+        
+        $this->debug->log('Clearing gallery transients', null, 'info');
+        
+        // Get all transients related to galleries
+        global $wpdb;
+        
+        // Delete specific transients we know about
+        delete_transient('br_total_images_count');
+        
+        // Delete all transients with the br_gallery_ prefix
+        $transients = $wpdb->get_col(
+            $wpdb->prepare(
+                "SELECT option_name FROM $wpdb->options WHERE option_name LIKE %s",
+                $wpdb->esc_like('_transient_br_gallery_') . '%'
+            )
+        );
+        
+        $count = 0;
+        foreach ($transients as $transient) {
+            $transient_name = str_replace('_transient_', '', $transient);
+            delete_transient($transient_name);
+            $count++;
+        }
+        
+        // Also delete the timeout transients
+        $timeout_transients = $wpdb->get_col(
+            $wpdb->prepare(
+                "SELECT option_name FROM $wpdb->options WHERE option_name LIKE %s",
+                $wpdb->esc_like('_transient_timeout_br_gallery_') . '%'
+            )
+        );
+        
+        foreach ($timeout_transients as $transient) {
+            $transient_name = str_replace('_transient_timeout_', '', $transient);
+            delete_transient($transient_name);
+            $count++;
+        }
+        
+        $this->debug->log('Cleared gallery transients', array('count' => $count), 'info');
+        
+        wp_send_json_success(array(
+            'message' => sprintf(
+                __('Successfully cleared %d gallery transients.', 'beautiful-rescues'),
+                $count
+            )
+        ));
     }
 } 

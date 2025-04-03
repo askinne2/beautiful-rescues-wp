@@ -54,13 +54,22 @@
                 hasMoreImages: hasMoreImages
             });
 
-            // Load existing selections from localStorage
-            const storedImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]');
-            storedImages.forEach(img => {
-                if (img && img.id) {
-                    selectedImages.add(img.id);
-                }
-            });
+            // Only load selections from localStorage on initial load, not when appending
+            if (page === 1 && !append) {
+                // Load existing selections from localStorage
+                const storedImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]');
+                selectedImages.clear(); // Clear the set first
+                storedImages.forEach(img => {
+                    if (img && img.id) {
+                        selectedImages.add(img.id);
+                    }
+                });
+                
+                beautifulRescuesDebug.log('Loaded selections from localStorage:', {
+                    storedImages: storedImages,
+                    selectedImages: Array.from(selectedImages)
+                });
+            }
             
             // Update UI to reflect stored selections
             $('.gallery-item').each(function() {
@@ -120,18 +129,31 @@
                     }
                 });
                 
+                // Get current selections from localStorage to ensure we have the complete set
+                const currentStoredImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]');
+                const currentStoredIds = new Set(currentStoredImages.map(img => img.id).filter(Boolean));
+                
                 if (selectedImages.has(imageId)) {
                     selectedImages.delete(imageId);
+                    currentStoredIds.delete(imageId);
                     item.removeClass('selected');
                 } else {
                     selectedImages.add(imageId);
+                    currentStoredIds.add(imageId);
                     item.addClass('selected');
                 }
                 
                 $('.selected-count').text(selectedImages.size);
                 
                 // Update localStorage with standardized image data
-                const selectedImagesArray = Array.from(selectedImages).map(id => {
+                const selectedImagesArray = Array.from(currentStoredIds).map(id => {
+                    // First check if we already have this image in localStorage
+                    const existingImage = currentStoredImages.find(img => img.id === id);
+                    if (existingImage) {
+                        return existingImage;
+                    }
+                    
+                    // If not, get it from the DOM
                     const imgElement = $('.gallery-item[data-public-id="' + id + '"] img');
                     const imageData = {
                         id: id,
@@ -383,8 +405,22 @@
             $('.modal-nav-button[data-direction="1"]').toggle(currentModalIndex < modalImages.length - 1);
         }
 
-        // Update loadMoreImages function to handle sorting
+        // Function to load more images
         function loadMoreImages($gallery, category, sort, page, perPage) {
+            if (isLoading) return;
+            isLoading = true;
+            
+            beautifulRescuesDebug.log('Loading more images:', {
+                category,
+                sort,
+                page,
+                perPage
+            });
+            
+            // Show loading overlay
+            $('.gallery-loading-overlay').addClass('active');
+            
+            // Load images from server
             $.ajax({
                 url: beautifulRescuesGallery.ajaxurl,
                 type: 'POST',
@@ -397,33 +433,57 @@
                     nonce: beautifulRescuesGallery.nonce
                 },
                 success: function(response) {
-                    if (response.success) {
+                    beautifulRescuesDebug.log('Server response:', response);
+                    
+                    if (response.success && response.data.images.length > 0) {
                         const images = response.data.images;
-                        const hasMore = response.data.has_more;
-                        const $grid = $gallery.find('.gallery-grid');
+                        const totalImages = response.data.total_images || 0;
                         
-                        // Append new images
+                        // Get current selections from localStorage to ensure we have the complete set
+                        const currentStoredImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]');
+                        const currentStoredIds = new Set(currentStoredImages.map(img => img.id).filter(Boolean));
+                        
+                        // Update selectedImages set with current stored IDs
+                        selectedImages.clear();
+                        currentStoredIds.forEach(id => selectedImages.add(id));
+                        
+                        // Add new images to grid
                         images.forEach(function(image) {
-                            $grid.append(createGalleryItem(image));
+                            const item = createGalleryItem(image);
+                            $('.gallery-grid').append(item);
+                            
+                            // Restore selection state for new images
+                            if (selectedImages.has(image.id)) {
+                                $(item).addClass('selected');
+                            }
                         });
                         
-                        // Update page number
-                        $gallery.data('page', page + 1);
+                        // Update hasMoreImages flag based on total images count
+                        hasMoreImages = $('.gallery-grid .gallery-item').length < totalImages;
+                        beautifulRescuesDebug.log('hasMoreImages:', hasMoreImages);
                         
                         // Show/hide load more button
-                        const $loadMoreButton = $gallery.find('.load-more-button');
-                        if (hasMore) {
-                            $loadMoreButton.show();
+                        if (hasMoreImages) {
+                            if (!$('.load-more-button').length) {
+                                const $newBtn = $('<button class="load-more-button">' + beautifulRescuesGallery.i18n.loadMore + '</button>');
+                                $('.gallery-grid').after($newBtn);
+                            }
+                            $('.load-more-button').show();
                         } else {
-                            $loadMoreButton.hide();
+                            $('.load-more-button').hide();
                         }
+                    } else {
+                        hasMoreImages = false;
+                        $('.load-more-button').hide();
                     }
                 },
-                error: function() {
-                    $gallery.find('.gallery-grid').append('<div class="gallery-error">Error loading images. Please try again.</div>');
+                error: function(xhr, status, error) {
+                    beautifulRescuesDebug.error('Error loading images:', error);
+                    showToast('Failed to load images. Please try again.');
                 },
                 complete: function() {
-                    // Hide loading overlay
+                    isLoading = false;
+                    $('.load-more-button').prop('disabled', false);
                     $('.gallery-loading-overlay').removeClass('active');
                 }
             });

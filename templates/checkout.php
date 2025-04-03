@@ -41,7 +41,7 @@ while (have_posts()) :
 
             <div class="checkout-body">
                 <!-- Selected Images Preview -->
-                <div class="checkout-column">
+                <div class="checkout-column gallery-column">
                     <div class="selected-images-preview">
                         <h2><?php _e('Selected Images', 'beautiful-rescues'); ?></h2>
                         <div class="selected-images-grid">

@@ -110,6 +110,22 @@ class BR_Settings {
             'beautiful-rescues',
             'debug_settings'
         );
+
+        // Add maintenance section
+        add_settings_section(
+            'maintenance_settings',
+            'Maintenance Settings',
+            array($this, 'render_maintenance_section'),
+            'beautiful-rescues'
+        );
+
+        add_settings_field(
+            'clear_gallery_transients',
+            'Clear Gallery Transients',
+            array($this, 'render_clear_gallery_transients_field'),
+            'beautiful-rescues',
+            'maintenance_settings'
+        );
     }
 
     /**
@@ -234,6 +250,55 @@ class BR_Settings {
         <input type="text" name="watermark_url" 
                value="<?php echo esc_attr($value); ?>" class="regular-text">
         <p class="description">Enter the full URL of your watermark image. Recommended format: WebP with transparency.</p>
+        <?php
+    }
+
+    public function render_maintenance_section() {
+        echo '<p>Maintenance tools for the Beautiful Rescues plugin:</p>';
+    }
+
+    public function render_clear_gallery_transients_field() {
+        ?>
+        <button type="button" id="clear-gallery-transients" class="button button-secondary">
+            <?php _e('Clear Gallery Transients', 'beautiful-rescues'); ?>
+        </button>
+        <p class="description">Clear all cached gallery data. This will force the plugin to fetch fresh data from Cloudinary.</p>
+        <div id="clear-transients-result" style="margin-top: 10px; display: none;"></div>
+        <script>
+            jQuery(document).ready(function($) {
+                $('#clear-gallery-transients').on('click', function() {
+                    var $button = $(this);
+                    var $result = $('#clear-transients-result');
+                    
+                    $button.prop('disabled', true).text('<?php _e('Clearing...', 'beautiful-rescues'); ?>');
+                    $result.hide();
+                    
+                    $.ajax({
+                        url: '<?php echo admin_url('admin-ajax.php'); ?>',
+                        type: 'POST',
+                        data: {
+                            action: 'br_clear_gallery_transients',
+                            nonce: '<?php echo wp_create_nonce('br_clear_gallery_transients'); ?>'
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                $result.html('<div class="notice notice-success"><p>' + response.data.message + '</p></div>');
+                            } else {
+                                $result.html('<div class="notice notice-error"><p>' + response.data.message + '</p></div>');
+                            }
+                            $result.show();
+                        },
+                        error: function() {
+                            $result.html('<div class="notice notice-error"><p><?php _e('An error occurred while clearing transients.', 'beautiful-rescues'); ?></p></div>');
+                            $result.show();
+                        },
+                        complete: function() {
+                            $button.prop('disabled', false).text('<?php _e('Clear Gallery Transients', 'beautiful-rescues'); ?>');
+                        }
+                    });
+                });
+            });
+        </script>
         <?php
     }
 

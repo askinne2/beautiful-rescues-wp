@@ -15,12 +15,16 @@
             $('body').append('<div class="verification-loading-overlay"><div class="verification-spinner"></div></div>');
         }
 
+        // Global variable to track form submission state
+        let isFormSubmitting = false;
+
         // Check if we're on the checkout page
         const isCheckoutPage = $('.checkout-page').length > 0;
         beautifulRescuesDebug.log('Page type:', { isCheckoutPage });
 
         // Get selected images from localStorage and ensure HTTPS URLs
         let selectedImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]')
+            .filter(img => img && img.id && img.url) // Filter out invalid entries
             .map(img => ({
                 ...img,
                 url: img.url.replace('http://', 'https://')
@@ -36,23 +40,31 @@
 
         // Initialize variables for checkout page
         if (isCheckoutPage) {
-            const selectedImagesGrid = $('.selected-images-grid');
+            // Get the actual DOM elements based on the structure shown in the console
+            const checkoutContainer = $('.checkout-container');
+            const galleryColumn = $('.checkout-column.gallery-column');
             const checkoutColumn = $('.checkout-column.checkout-verification-form');
+            const selectedImagesGrid = $('.selected-images-grid');
             const donationForm = $('#checkout-verification-form');
             const messages = $('#form-messages');
             
             beautifulRescuesDebug.log('Checkout page elements found:', {
                 checkoutPage: isCheckoutPage,
+                checkoutContainer: checkoutContainer.length > 0,
+                galleryColumn: galleryColumn.length > 0,
+                checkoutColumn: checkoutColumn.length > 0,
                 selectedImagesGrid: selectedImagesGrid.length > 0,
-                donationForm: donationForm.length > 0,
-                checkoutColumn: checkoutColumn.length > 0
+                donationForm: donationForm.length > 0
             });
             
-            if (!selectedImages.length) {
-                // Hide the left column completely when cart is empty
-                selectedImagesGrid.closest('.checkout-column').hide();
+            // Function to handle empty cart state
+            function handleEmptyCart() {
+                beautifulRescuesDebug.log('Handling empty cart state');
                 
-                // Show empty cart notice only in the form column (right column)
+                // Hide the gallery column completely when cart is empty
+                galleryColumn.hide();
+                
+                // Show empty cart notice in the checkout column
                 checkoutColumn.html(`
                     <div class="empty-cart-notice">
                         <p>Your cart is empty. Please select some images before proceeding to checkout.</p>
@@ -60,9 +72,14 @@
                     </div>
                 `);
                 
-                // Make sure the right column takes full width when left column is hidden
+                // Make sure the checkout column takes full width when gallery column is hidden
                 checkoutColumn.css('grid-column', '1 / -1');
-                
+            }
+            
+            // Check if cart is empty on page load
+            if (!selectedImages.length) {
+                beautifulRescuesDebug.log('Cart is empty on page load');
+                handleEmptyCart();
                 return; // Don't initialize form handlers if cart is empty
             }
 
@@ -73,25 +90,23 @@
                 });
 
                 if (!selectedImages.length) {
-                    // Hide the left column completely when cart is empty
-                    selectedImagesGrid.closest('.checkout-column').hide();
-                    
-                    // Show empty cart notice only in the form column (right column)
-                    checkoutColumn.html(`
-                        <div class="empty-cart-notice">
-                            <p>Your cart is empty. Please select some images before proceeding to checkout.</p>
-                            <a href="${beautifulRescuesCheckout.galleryUrl || beautifulRescuesCheckout.homeUrl}" class="button">Return to Gallery</a>
-                        </div>
-                    `);
-                    
-                    // Make sure the right column takes full width when left column is hidden
-                    checkoutColumn.css('grid-column', '1 / -1');
-                    
+                    handleEmptyCart();
                     return;
                 }
                 
-                // Reset the right column to normal width when images are present
+                // Reset the checkout column to normal width when images are present
                 checkoutColumn.css('grid-column', '');
+                
+                // Show the gallery column when images are present
+                galleryColumn.show();
+                
+                // If selectedImagesGrid doesn't exist, create it
+                if (!selectedImagesGrid.length) {
+                    galleryColumn.html('<div class="selected-images-grid"></div>');
+                }
+                
+                // Get the selectedImagesGrid again after potentially creating it
+                const updatedSelectedImagesGrid = $('.selected-images-grid');
                 
                 // Show images in grid with standardized data
                 const imagesHtml = selectedImages.map(image => `
@@ -104,7 +119,7 @@
                     </div>
                 `).join('');
 
-                selectedImagesGrid.html(imagesHtml);
+                updatedSelectedImagesGrid.html(imagesHtml);
             }
 
             // Function to update cart count
@@ -123,7 +138,7 @@
             }
 
             // Handle remove image
-            selectedImagesGrid.on('click', '.remove-image', function(e) {
+            $(document).on('click', '.remove-image', function(e) {
                 e.preventDefault();
                 const imageId = $(this).data('id');
                 
@@ -141,12 +156,52 @@
                 updateSelectedImagesPreview();
                 
                 // Trigger custom event for cart update
-                $(document).trigger('beautifulRescuesSelectionChanged');
+                $(document).trigger('beautifulRescuesSelectionChanged', [{
+                    selectedImages: selectedImages
+                }]);
                 
                 beautifulRescuesDebug.log('Image removed, new state:', {
                     selectedImages: selectedImages,
                     localStorage: JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]')
                 });
+            });
+
+            // Listen for selection changes from gallery
+            $(document).on('beautifulRescuesSelectionChanged', function(e, data) {
+                beautifulRescuesDebug.log('Selection changed event received:', data);
+                
+                if (data && data.selectedImages) {
+                    // Create a map of existing images by ID for quick lookup
+                    const existingImagesMap = {};
+                    selectedImages.forEach(img => {
+                        if (img && img.id) {
+                            existingImagesMap[img.id] = img;
+                        }
+                    });
+                    
+                    // Update with new selections, preserving existing data
+                    selectedImages = data.selectedImages.filter(img => img && img.id && img.url)
+                        .map(img => {
+                            // If we already have this image, preserve its data
+                            if (existingImagesMap[img.id]) {
+                                return {
+                                    ...existingImagesMap[img.id],
+                                    ...img,
+                                    url: img.url.replace('http://', 'https://')
+                                };
+                            }
+                            return {
+                                ...img,
+                                url: img.url.replace('http://', 'https://')
+                            };
+                        });
+                    
+                    beautifulRescuesDebug.log('Updated selected images:', selectedImages);
+                    
+                    // Update localStorage
+                    localStorage.setItem('beautifulRescuesSelectedImages', JSON.stringify(selectedImages));
+                    updateSelectedImagesPreview();
+                }
             });
 
             // Initialize selected images preview
@@ -202,6 +257,16 @@
                 const submitButton = donationForm.find('button[type="submit"]');
                 const checkoutColumn = donationForm.closest('.checkout-column');
                 
+                // Check if form is already submitting using global variable
+                if (isFormSubmitting) {
+                    beautifulRescuesDebug.error('Form already submitting');
+                    beautifulRescuesDebug.groupEnd();
+                    return;
+                }
+                
+                // Set global submitting state
+                isFormSubmitting = true;
+                
                 // Clear previous messages
                 messages.removeClass('error success').empty();
                 
@@ -254,17 +319,6 @@
                     return;
                 }
 
-                if (donationForm.data('submitting')) {
-                    beautifulRescuesDebug.error('Form already submitting');
-                    beautifulRescuesDebug.groupEnd();
-                    return;
-                }
-
-                // Set submitting state
-                donationForm.data('submitting', true);
-                donationForm.addClass('submitting');
-                submitButton.prop('disabled', true);
-                
                 // Show loading overlay
                 beautifulRescuesDebug.log('Showing loading overlay');
                 $('.verification-loading-overlay').addClass('active');
@@ -286,57 +340,84 @@
                 }));
                 formData.append('selected_images', JSON.stringify(formattedImages));
 
-                $.ajax({
-                    url: beautifulRescuesCheckout.ajaxurl,
-                    type: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    success: function(response) {
-                        beautifulRescuesDebug.log('Form submission response:', response);
-                        
-                        if (response.success) {
-                            beautifulRescuesDebug.log('Submission successful, showing success message');
-                            // Hide the form and show success message
-                            const successHtml = `
-                                <div class="verification-success">
-                                    <h2>${beautifulRescuesCheckout.i18n.thankYou}</h2>
-                                    <p>${beautifulRescuesCheckout.i18n.verificationReceived}</p>
-                                </div>
-                            `;
-                            checkoutColumn.html(successHtml);
+                // Use a timeout to prevent multiple submissions
+                const submissionTimeout = setTimeout(() => {
+                    $.ajax({
+                        url: beautifulRescuesCheckout.ajaxurl,
+                        type: 'POST',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        success: function(response) {
+                            beautifulRescuesDebug.log('Form submission response:', response);
                             
-                            // Clear selected images from localStorage after successful submission
-                            localStorage.removeItem('beautifulRescuesSelectedImages');
-                            beautifulRescuesDebug.log('Cleared selected images from localStorage');
-                            
-                            // Handle redirect if URL is provided
-                            if (response.data.redirect_url) {
-                                beautifulRescuesDebug.log('Redirect URL provided:', response.data.redirect_url);
-                                setTimeout(() => {
-                                    window.location.href = response.data.redirect_url;
-                                }, 2000);
+                            if (response.success) {
+                                beautifulRescuesDebug.log('Submission successful, showing success message');
+                                // Hide the form and show success message
+                                const successHtml = `
+                                    <div class="verification-success">
+                                        <h2>${beautifulRescuesCheckout.i18n.thankYou}</h2>
+                                        <p>${beautifulRescuesCheckout.i18n.verificationReceived}</p>
+                                    </div>
+                                `;
+                                checkoutColumn.html(successHtml);
+                                
+                                // Scroll to the success message
+                                $('html, body').animate({
+                                    scrollTop: checkoutColumn.offset().top - 100
+                                }, 500);
+                                
+                                // Clear selected images from localStorage after successful submission
+                                localStorage.removeItem('beautifulRescuesSelectedImages');
+                                beautifulRescuesDebug.log('Cleared selected images from localStorage');
+                                
+                                // Handle redirect if URL is provided
+                                if (response.data.redirect_url) {
+                                    beautifulRescuesDebug.log('Redirect URL provided:', response.data.redirect_url);
+                                    setTimeout(() => {
+                                        window.location.href = response.data.redirect_url;
+                                    }, 2000);
+                                }
+                            } else {
+                                beautifulRescuesDebug.error('Submission failed:', response.data?.message);
+                                showError(response.data?.message || beautifulRescuesCheckout.i18n.error);
+                                
+                                // Scroll to the error message
+                                $('html, body').animate({
+                                    scrollTop: messages.offset().top - 100
+                                }, 500);
                             }
-                        } else {
-                            beautifulRescuesDebug.error('Submission failed:', response.data?.message);
-                            showError(response.data?.message || beautifulRescuesCheckout.i18n.error);
+                        },
+                        error: function(xhr, status, error) {
+                            beautifulRescuesDebug.error('Form submission error:', error);
+                            showError(beautifulRescuesCheckout.i18n.error);
+                            
+                            // Scroll to the error message
+                            $('html, body').animate({
+                                scrollTop: messages.offset().top - 100
+                            }, 500);
+                        },
+                        complete: function() {
+                            beautifulRescuesDebug.log('Form submission complete, hiding loading overlay');
+                            
+                            // Clear the timeout
+                            clearTimeout(submissionTimeout);
+                            
+                            // Hide loading overlay
+                            $('.verification-loading-overlay').removeClass('active');
+                            
+                            // Reset form state
+                            donationForm.removeClass('submitting');
+                            donationForm.data('submitting', false);
+                            submitButton.prop('disabled', false);
+                            
+                            // Reset global submitting state
+                            isFormSubmitting = false;
+                            
+                            beautifulRescuesDebug.groupEnd();
                         }
-                    },
-                    error: function(xhr, status, error) {
-                        beautifulRescuesDebug.error('Form submission error:', error);
-                        showError(beautifulRescuesCheckout.i18n.error);
-                    },
-                    complete: function() {
-                        beautifulRescuesDebug.log('Form submission complete, hiding loading overlay');
-                        
-                        // Hide loading overlay
-                        $('.verification-loading-overlay').removeClass('active');
-                        
-                        donationForm.removeClass('submitting');
-                        donationForm.data('submitting', false);
-                        submitButton.prop('disabled', false);
-                    }
-                });
+                    });
+                }, 100); // Small delay to prevent multiple submissions
             }
 
             // Helper function to validate email format
@@ -363,11 +444,17 @@
                 const submitButton = form.find('button[type="submit"]');
                 const messages = form.find('#form-messages');
                 
+                // Check if form is already submitting using global variable
+                if (isFormSubmitting) {
+                    beautifulRescuesDebug.error('Form already submitting');
+                    return;
+                }
+                
+                // Set global submitting state
+                isFormSubmitting = true;
+                
                 // Clear previous messages
                 messages.removeClass('error success').empty();
-                
-                // Disable submit button
-                submitButton.prop('disabled', true);
                 
                 // Show loading overlay
                 $('.verification-loading-overlay').addClass('active');
@@ -385,46 +472,73 @@
                 // Ensure beautiful_rescues identifier is set
                 formData.append('beautiful_rescues', '1');
                 
-                // Submit form via AJAX
-                $.ajax({
-                    url: beautifulRescuesVerification.ajaxurl,
-                    type: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    success: function(response) {
-                        if (response.success) {
-                            // Show success message
-                            messages.addClass('success').html(response.data.message || 'Verification submitted successfully.');
-                            
-                            // Clear form
-                            form[0].reset();
-                            
-                            // Clear selected images from localStorage after successful submission
-                            localStorage.removeItem('beautifulRescuesSelectedImages');
-                            beautifulRescuesDebug.log('Cleared selected images from localStorage');
-                            
-                            // Redirect if URL is provided
-                            if (response.data.redirect_url) {
-                                window.location.href = response.data.redirect_url;
+                // Use a timeout to prevent multiple submissions
+                const submissionTimeout = setTimeout(() => {
+                    // Submit form via AJAX
+                    $.ajax({
+                        url: beautifulRescuesVerification.ajaxurl,
+                        type: 'POST',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        success: function(response) {
+                            if (response.success) {
+                                // Show success message
+                                messages.addClass('success').html(response.data.message || 'Verification submitted successfully.');
+                                
+                                // Scroll to the success message
+                                $('html, body').animate({
+                                    scrollTop: messages.offset().top - 100
+                                }, 500);
+                                
+                                // Clear form
+                                form[0].reset();
+                                
+                                // Clear selected images from localStorage after successful submission
+                                localStorage.removeItem('beautifulRescuesSelectedImages');
+                                beautifulRescuesDebug.log('Cleared selected images from localStorage');
+                                
+                                // Redirect if URL is provided
+                                if (response.data.redirect_url) {
+                                    window.location.href = response.data.redirect_url;
+                                }
+                            } else {
+                                // Show error message
+                                messages.addClass('error').html(response.data.message || 'An error occurred. Please try again.');
+                                
+                                // Scroll to the error message
+                                $('html, body').animate({
+                                    scrollTop: messages.offset().top - 100
+                                }, 500);
                             }
-                        } else {
+                        },
+                        error: function() {
                             // Show error message
-                            messages.addClass('error').html(response.data.message || 'An error occurred. Please try again.');
+                            messages.addClass('error').html('An error occurred. Please try again.');
+                            
+                            // Scroll to the error message
+                            $('html, body').animate({
+                                scrollTop: messages.offset().top - 100
+                            }, 500);
+                        },
+                        complete: function() {
+                            // Clear the timeout
+                            clearTimeout(submissionTimeout);
+                            
+                            // Re-enable submit button
+                            submitButton.prop('disabled', false);
+                            
+                            // Reset form state
+                            form.data('submitting', false);
+                            
+                            // Reset global submitting state
+                            isFormSubmitting = false;
+                            
+                            // Hide loading overlay
+                            $('.verification-loading-overlay').removeClass('active');
                         }
-                    },
-                    error: function() {
-                        // Show error message
-                        messages.addClass('error').html('An error occurred. Please try again.');
-                    },
-                    complete: function() {
-                        // Re-enable submit button
-                        submitButton.prop('disabled', false);
-                        
-                        // Hide loading overlay
-                        $('.verification-loading-overlay').removeClass('active');
-                    }
-                });
+                    });
+                }, 100); // Small delay to prevent multiple submissions
             });
         }
     });

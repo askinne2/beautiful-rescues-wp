@@ -92,44 +92,12 @@ class BR_Cloudinary_Integration {
      * Handle file upload to Cloudinary
      */
     public function handle_upload_to_cloudinary($upload, $context) {
-        // Skip processing for WordPress Media Library uploads
-        if ($context === 'upload' && isset($_SERVER['HTTP_REFERER'])) {
-            $referer = $_SERVER['HTTP_REFERER'];
-            
-            // Check if this is a WordPress Media Library upload
-            if (strpos($referer, 'wp-admin/media-upload.php') !== false || 
-                strpos($referer, 'wp-admin/media-new.php') !== false ||
-                strpos($referer, 'wp-admin/upload.php') !== false) {
-                $this->debug->log('Bypassing Cloudinary for WordPress Media Library upload', array('referer' => $referer));
-                return $upload;
-            }
-        }
-        
-        // Check if this is a Beautiful Rescues upload
-        $is_br_upload = false;
-        
-        // Method 1: Check if it's identified as a BR upload
-        if (isset($upload['beautiful_rescues']) && $upload['beautiful_rescues'] === true) {
-            $is_br_upload = true;
-        }
-        
-        // Method 2: Check referer
-        if (!$is_br_upload && isset($_SERVER['HTTP_REFERER'])) {
-            $referer = $_SERVER['HTTP_REFERER'];
-            $is_br_upload = strpos($referer, 'beautiful-rescues') !== false;
-        }
-        
-        // Method 3: Check if it's a verification post type
-        if (!$is_br_upload && isset($_POST['post_id'])) {
-            $post_type = get_post_type($_POST['post_id']);
-            $is_br_upload = $post_type === 'verification';
-        }
-        
-        // If not from our plugin, return the upload as is
-        if (!$is_br_upload) {
+        // Only process uploads that are explicitly marked as Beautiful Rescues uploads
+        if (!isset($upload['beautiful_rescues']) || $upload['beautiful_rescues'] !== true) {
+            // This is not a Beautiful Rescues upload, return the original upload data
             return $upload;
         }
-
+        
         // Ensure we have a valid file
         if (!isset($upload['file']) || empty($upload['file'])) {
             $this->debug->log('Invalid upload data: missing file', $upload);
@@ -164,15 +132,7 @@ class BR_Cloudinary_Integration {
      * Get Cloudinary URL for an attachment
      */
     public function get_cloudinary_url($url, $attachment_id) {
-        // Skip processing for WordPress Media Library URLs
-        if (isset($_SERVER['REQUEST_URI']) && 
-            (strpos($_SERVER['REQUEST_URI'], 'wp-admin/media-upload.php') !== false || 
-             strpos($_SERVER['REQUEST_URI'], 'wp-admin/media-new.php') !== false ||
-             strpos($_SERVER['REQUEST_URI'], 'wp-admin/upload.php') !== false)) {
-            return $url;
-        }
-        
-        // Check if this is a Beautiful Rescues attachment
+        // Get the post
         $post = get_post($attachment_id);
         if (!$post) {
             return $url;
@@ -502,30 +462,10 @@ class BR_Cloudinary_Integration {
      * Identify Beautiful Rescues uploads
      */
     public function identify_br_uploads($uploads) {
-        // Check if this is a Beautiful Rescues upload
-        $is_br_upload = false;
-        
-        // Method 1: Check POST data
+        // Only mark uploads as Beautiful Rescues if they come from our verification form
         if (isset($_POST['beautiful_rescues']) && $_POST['beautiful_rescues'] === '1') {
-            $is_br_upload = true;
-        }
-        
-        // Method 2: Check referer
-        if (!$is_br_upload && isset($_SERVER['HTTP_REFERER'])) {
-            $referer = $_SERVER['HTTP_REFERER'];
-            $is_br_upload = strpos($referer, 'beautiful-rescues') !== false;
-        }
-        
-        // Method 3: Check if it's a verification post type
-        if (!$is_br_upload && isset($_POST['post_id'])) {
-            $post_type = get_post_type($_POST['post_id']);
-            $is_br_upload = $post_type === 'verification';
-        }
-        
-        // If this is a Beautiful Rescues upload, add our identifier
-        if ($is_br_upload) {
             $uploads['beautiful_rescues'] = true;
-            $this->debug->log('Identified Beautiful Rescues upload', $uploads);
+            $this->debug->log('Identified Beautiful Rescues upload from form', $uploads);
         }
         
         return $uploads;
@@ -535,15 +475,7 @@ class BR_Cloudinary_Integration {
      * Get Cloudinary image source
      */
     public function get_cloudinary_image_src($image_src, $attachment_id, $size, $icon) {
-        // Skip processing for WordPress Media Library image sources
-        if (isset($_SERVER['REQUEST_URI']) && 
-            (strpos($_SERVER['REQUEST_URI'], 'wp-admin/media-upload.php') !== false || 
-             strpos($_SERVER['REQUEST_URI'], 'wp-admin/media-new.php') !== false ||
-             strpos($_SERVER['REQUEST_URI'], 'wp-admin/upload.php') !== false)) {
-            return $image_src;
-        }
-        
-        // Check if this is a Beautiful Rescues attachment
+        // Get the post
         $post = get_post($attachment_id);
         if (!$post) {
             return $image_src;
