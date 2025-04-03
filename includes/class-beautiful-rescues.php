@@ -357,6 +357,7 @@ class BR_Beautiful_Rescues {
                 'ajaxurl' => admin_url('admin-ajax.php'),
                 'nonce' => wp_create_nonce('beautiful_rescues_verification_nonce'),
                 'homeUrl' => home_url(),
+                'galleryUrl' => $this->get_gallery_url(),
                 'watermarkUrl' => get_option('watermark_url', 'https://res.cloudinary.com/dgnb4yyrc/image/upload/v1743356913/br-watermark-2025_2x_uux1x2.webp'),
                 'debug' => array(
                     'enabled' => $this->debug->is_enabled(),
@@ -939,5 +940,16 @@ class BR_Beautiful_Rescues {
      */
     public function check_cloudinary_credentials() {
         // Implementation of the method
+    }
+
+    /**
+     * Get gallery URL
+     */
+    private function get_gallery_url() {
+        $gallery_page = get_page_by_path('gallery');
+        if ($gallery_page) {
+            return get_page_link($gallery_page->ID);
+        }
+        return home_url('/gallery');
     }
 } 

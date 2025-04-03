@@ -56,7 +56,7 @@
                 checkoutColumn.html(`
                     <div class="empty-cart-notice">
                         <p>Your cart is empty. Please select some images before proceeding to checkout.</p>
-                        <a href="/" class="button">Return to Gallery</a>
+                        <a href="${beautifulRescuesCheckout.galleryUrl || beautifulRescuesCheckout.homeUrl}" class="button">Return to Gallery</a>
                     </div>
                 `);
                 
@@ -80,7 +80,7 @@
                     checkoutColumn.html(`
                         <div class="empty-cart-notice">
                             <p>Your cart is empty. Please select some images before proceeding to checkout.</p>
-                            <a href="/" class="button">Return to Gallery</a>
+                            <a href="${beautifulRescuesCheckout.galleryUrl || beautifulRescuesCheckout.homeUrl}" class="button">Return to Gallery</a>
                         </div>
                     `);
                     
