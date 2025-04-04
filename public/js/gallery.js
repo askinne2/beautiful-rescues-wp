@@ -272,7 +272,31 @@
                         // Add new images to grid
                         images.forEach(function(image) {
                             const item = createGalleryItem(image);
-                            $('.gallery-grid').append(item);
+                            
+                            // Get all current gallery items
+                            const $items = $('.gallery-grid .gallery-item');
+                            const columnCount = parseInt($('.gallery-grid').css('column-count')) || 5;
+                            
+                            // Calculate the target column for this item
+                            const targetColumn = ($items.length % columnCount);
+                            
+                            // Find the last item in the target column
+                            let $lastInColumn = null;
+                            for (let i = $items.length - 1; i >= 0; i--) {
+                                const $item = $($items[i]);
+                                const itemColumn = i % columnCount;
+                                if (itemColumn === targetColumn) {
+                                    $lastInColumn = $item;
+                                    break;
+                                }
+                            }
+                            
+                            // Insert the new item after the last item in its target column
+                            if ($lastInColumn) {
+                                $lastInColumn.after(item);
+                            } else {
+                                $('.gallery-grid').append(item);
+                            }
                             
                             // Restore selection state for new images
                             if (selectedImages.has(image.id)) {
@@ -319,6 +343,16 @@
             const imageWidth = image.width || '';
             const imageHeight = image.height || '';
 
+            // Extract filename from URL if not provided
+            let displayFilename = imageFilename;
+            if (!displayFilename && imageUrl) {
+                const urlParts = imageUrl.split('/');
+                // Look for the filename part in the path (it's the second to last part)
+                if (urlParts.length >= 2) {
+                    displayFilename = urlParts[urlParts.length - 2];
+                }
+            }
+
             // Calculate aspect ratio
             const aspectRatio = imageHeight && imageWidth ? imageHeight / imageWidth : 1;
             const isPortrait = aspectRatio > 1;
@@ -352,12 +386,13 @@
                         <img src="${responsiveUrls.medium}"
                              srcset="${srcset}"
                              sizes="${sizes}"
-                             alt="${imageFilename}"
+                             alt="${displayFilename}"
                              data-url="${imageUrl}"
                              data-width="${imageWidth}"
                              data-height="${imageHeight}"
                              loading="lazy"
                              onload="this.classList.add('loaded'); this.parentElement.classList.add('loaded'); this.parentElement.parentElement.querySelector('.gallery-item-skeleton').style.display='none'">
+                        <div class="gallery-item-filename">${displayFilename}</div>
                         <div class="gallery-item-actions">
                             <button class="gallery-item-button select-button" aria-label="Select image">
                                 <svg class="checkmark-icon" viewBox="0 0 24 24" width="24" height="24">
@@ -385,18 +420,49 @@
             }).index();
             
             modalImages = $('.gallery-item').map(function() {
+                const $img = $(this).find('img');
                 return {
-                    url: $(this).find('img').attr('src'),
+                    url: $img.data('url'), // Use watermarked URL from data-url
                     caption: $(this).find('.gallery-caption').text()
                 };
             }).get();
             
-            $('.modal-image').attr('src', imageUrl);
+            // Show loading state
+            const $modalImage = $('.modal-image');
+            $modalImage.addClass('loading');
+            
+            // Create new image to preload
+            const img = new Image();
+            img.onload = function() {
+                $modalImage.attr('src', this.src).removeClass('loading');
+            };
+            img.src = modalImages[currentModalIndex].url;
+            
             $('.modal-caption').text(caption);
             $('.gallery-modal').fadeIn(300);
             $('body').addClass('modal-open');
             
+            // Preload adjacent images
+            preloadAdjacentImages();
+            
             updateModalNavigation();
+        }
+
+        function preloadAdjacentImages() {
+            const preloadCount = 2; // Number of images to preload in each direction
+            const totalImages = modalImages.length;
+            
+            for (let i = 1; i <= preloadCount; i++) {
+                // Preload next images
+                const nextIndex = (currentModalIndex + i) % totalImages;
+                const nextImage = new Image();
+                nextImage.src = modalImages[nextIndex].url;
+                
+                // Preload previous images
+                const prevIndex = (currentModalIndex - i + totalImages) % totalImages;
+                const prevImage = new Image();
+                prevImage.src = modalImages[prevIndex].url;
+            }
         }
 
         function closeModal() {
@@ -408,11 +474,29 @@
             currentModalIndex = (currentModalIndex + direction + modalImages.length) % modalImages.length;
             const image = modalImages[currentModalIndex];
             
-            $('.modal-image').attr('src', image.url);
+            // Show loading state
+            const $modalImage = $('.modal-image');
+            $modalImage.addClass('loading');
+            
+            // Create new image to preload
+            const img = new Image();
+            img.onload = function() {
+                $modalImage.attr('src', this.src).removeClass('loading');
+            };
+            img.src = image.url;
+            
             $('.modal-caption').text(image.caption);
+            
+            // Preload adjacent images
+            preloadAdjacentImages();
             
             updateModalNavigation();
         }
+
+        // Add loading state handling
+        $('.modal-image').on('load', function() {
+            $(this).removeClass('loading');
+        });
 
         function updateModalNavigation() {
             $('.modal-nav-button[data-direction="-1"]').toggle(currentModalIndex > 0);
@@ -493,7 +577,31 @@
                         // Add new images to grid
                         images.forEach(function(image) {
                             const item = createGalleryItem(image);
-                            $('.gallery-grid').append(item);
+                            
+                            // Get all current gallery items
+                            const $items = $('.gallery-grid .gallery-item');
+                            const columnCount = parseInt($('.gallery-grid').css('column-count')) || 5;
+                            
+                            // Calculate the target column for this item
+                            const targetColumn = ($items.length % columnCount);
+                            
+                            // Find the last item in the target column
+                            let $lastInColumn = null;
+                            for (let i = $items.length - 1; i >= 0; i--) {
+                                const $item = $($items[i]);
+                                const itemColumn = i % columnCount;
+                                if (itemColumn === targetColumn) {
+                                    $lastInColumn = $item;
+                                    break;
+                                }
+                            }
+                            
+                            // Insert the new item after the last item in its target column
+                            if ($lastInColumn) {
+                                $lastInColumn.after(item);
+                            } else {
+                                $('.gallery-grid').append(item);
+                            }
                             
                             // Restore selection state for new images
                             if (selectedImages.has(image.id)) {

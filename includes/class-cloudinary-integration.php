@@ -227,7 +227,7 @@ class BR_Cloudinary_Integration {
             // Extract the public ID from the watermark URL
             if (preg_match('/\/v\d+\/([^\/]+)\.(webp|png|jpg|jpeg)$/', $watermark_url, $matches)) {
                 $watermark_public_id = $matches[1];
-                $transformations[] = "l_{$watermark_public_id},w_0.7,o_50,fl_relative/fl_tiled.layer_apply";
+                $transformations[] = "l_{$watermark_public_id},w_0.7,o_20,fl_relative/fl_tiled.layer_apply";
             }
         }
 
@@ -235,6 +235,11 @@ class BR_Cloudinary_Integration {
         $transformations_string = implode('/', $transformations);
 
         $url = "https://res.cloudinary.com/{$this->cloud_name}/image/upload/{$transformations_string}/{$public_id}";
+        $this->debug->log('Generated Cloudinary URL', [
+            'url' => $url,
+            'public_id' => $public_id,
+            'transformations' => $transformations_string
+        ], 'info');
         
         return $url;
     }

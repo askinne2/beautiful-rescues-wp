@@ -129,10 +129,6 @@
     transition: opacity 0.3s ease;
 }
 
-.gallery-item-image.loaded {
-    opacity: 1;
-}
-
 .gallery-item-image img {
     width: 100%;
     height: auto;
@@ -142,6 +138,7 @@
     opacity: 0;
     transform: scale(0.98);
     transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
 }
 
 .gallery-item-image img.loaded {
@@ -308,7 +305,7 @@
     bottom: 0;
     background: rgba(0,0,0,0.9);
     z-index: 1000;
-    padding: 2rem;
+    padding: 1rem;
     overflow-y: auto;
 }
 
@@ -316,33 +313,71 @@
     position: relative;
     max-width: 90vw;
     max-height: 90vh;
-    margin: 2rem auto;
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     background: white;
     border-radius: 8px;
-    padding: 2rem;
+    padding: 1rem;
     overflow-y: auto;
-}
-
-.modal-image-container {
-    position: relative;
-    max-width: 100%;
-    max-height: 100%;
 }
 
 .modal-image {
     max-width: 100%;
     max-height: 90vh;
     object-fit: contain;
+    display: block;
+    transition: opacity 0.3s ease;
+}
+
+.modal-image.loading {
+    opacity: 0.5;
+}
+
+.modal-image-container {
+    position: relative;
+    max-width: 100%;
+    max-height: 100%;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-image-container::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: var(--e-global-color-primary, #492222);
+    border-radius: 50%;
+    animation: modal-spinner 0.8s linear infinite;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.modal-image.loading + .modal-image-container::after {
+    opacity: 1;
+}
+
+@keyframes modal-spinner {
+    to {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
 }
 
 .modal-close {
     position: absolute;
-    top: 1rem;
-    right: 1rem;
+    top: 0.5rem;
+    right: 0.5rem;
     width: 36px;
     height: 36px;
     border: none;
@@ -362,7 +397,8 @@
 .modal-close svg {
     width: 20px;
     height: 20px;
-    stroke: #333;
+    stroke: var(--e-global-color-background, #ffffff) !important;
+    fill: var(--e-global-color-background, #ffffff) !important;
     stroke-width: 2;
     transition: all 0.2s ease;
 }
@@ -374,12 +410,13 @@
 }
 
 .modal-close:hover svg {
-    stroke: var(--e-global-color-secondary, #E04B7C);
+    stroke: var(--e-global-color-background, #ffffff);
+    fill: var(--e-global-color-background, #ffffff);
 }
 
 .modal-navigation {
     position: absolute;
-    bottom: 2rem;
+    bottom: 1rem;
     left: 0;
     right: 0;
     display: flex;
@@ -407,7 +444,8 @@
 .modal-nav-button svg {
     width: 20px;
     height: 20px;
-    stroke: #333;
+    stroke: var(--br-color-background), #ffffff;
+    fill: var(--br-color-background), #ffffff;
     stroke-width: 2;
     transition: all 0.2s ease;
 }
@@ -449,6 +487,31 @@ body.modal-open {
     
     .gallery-item {
         margin-bottom: 1rem;
+    }
+    
+    .gallery-modal {
+        padding: 0;
+    }
+    
+    .modal-content {
+        max-width: 100%;
+        max-height: 100vh;
+        margin: 0;
+        border-radius: 0;
+        padding: 0.5rem;
+    }
+    
+    .modal-image {
+        max-height: 100vh;
+    }
+    
+    .modal-close {
+        top: 0.5rem;
+        right: 0.5rem;
+    }
+    
+    .modal-navigation {
+        bottom: 1rem;
     }
 }
 
@@ -501,10 +564,10 @@ body.modal-open {
 
 .copyright-overlay {
     position: fixed;
-    bottom: 0;
+    top: 0;
     left: 0;
     right: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.148);
     color: white;
     text-align: center;
     padding: 0.5rem;
@@ -561,4 +624,28 @@ body.modal-open {
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+.gallery-item-filename {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 8px;
+    background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%);
+    color: white;
+    font-size: 12px;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.gallery-item:hover .gallery-item-filename {
+    opacity: 1;
+}
+
+.gallery-item.selected .gallery-item-filename {
+    opacity: 1;
 } 

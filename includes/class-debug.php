@@ -110,8 +110,8 @@ class BR_Debug {
             );
 
             if ($data !== null) {
-                // Only log data for error and warning levels, or if explicitly requested
-                if ($type === 'error' || $type === 'warning' || $this->current_log_level >= 3) {
+                // Log data for error, warning, and info levels, or if explicitly requested
+                if ($type === 'error' || $type === 'warning' || $type === 'info' || $this->current_log_level >= 3) {
                     $log_message .= "Data: " . print_r($data, true) . "\n";
                 }
             }

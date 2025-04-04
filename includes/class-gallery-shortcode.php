@@ -73,7 +73,7 @@ class BR_Gallery_Shortcode {
             'gutter' => '1.5rem',
             'max_width' => '100%',
             'category' => '',
-            'sort' => 'newest',
+            'sort' => 'name',
             'per_page' => '40',
             'tablet_breakpoint' => '768px',
             'mobile_breakpoint' => '480px',
@@ -193,14 +193,25 @@ class BR_Gallery_Shortcode {
         foreach ($initial_images as &$image) {
             // Generate base URL with transformations
             $base_url = $this->cloudinary->generate_image_url($image['public_id'], array(
-                'width' => 1200,  // Larger width for better quality
+                'width' => 1600,  // Increased from 1200 for better quality
                 'crop' => 'scale', // Preserve aspect ratio
-                'quality' => 'auto',
+                'quality' => '80', // Set explicit quality instead of auto
                 'format' => 'auto',
                 'watermark' => true,
                 'responsive' => true,
-                'webp' => true
+                'webp' => true,
+                'dpr' => 'auto' // Add DPR support for high-res displays
             ));
+
+            // Extract filename from public_id
+            $filename = '';
+            if (!empty($image['public_id'])) {
+                $parts = explode('/', $image['public_id']);
+                // Look for the filename part in the path (it's the second to last part)
+                if (count($parts) >= 2) {
+                    $filename = $parts[count($parts) - 2];
+                }
+            }
 
             // Calculate aspect ratio for responsive sizing
             $aspect_ratio = !empty($image['height']) && !empty($image['width']) 
@@ -209,33 +220,34 @@ class BR_Gallery_Shortcode {
             
             $is_portrait = $aspect_ratio > 100;
 
-            // Generate responsive image URLs
+            // Generate responsive image URLs with higher quality
             $responsive_urls = array(
-                'thumbnail' => str_replace('/upload/', '/upload/w_' . ($is_portrait ? '200' : '300') . ',c_scale/', $base_url),
-                'medium' => str_replace('/upload/', '/upload/w_' . ($is_portrait ? '400' : '600') . ',c_scale/', $base_url),
-                'large' => str_replace('/upload/', '/upload/w_' . ($is_portrait ? '800' : '1200') . ',c_scale/', $base_url),
+                'thumbnail' => str_replace('/upload/', '/upload/w_' . ($is_portrait ? '300' : '400') . ',c_scale,q_80,dpr_auto/', $base_url),
+                'medium' => str_replace('/upload/', '/upload/w_' . ($is_portrait ? '600' : '800') . ',c_scale,q_80,dpr_auto/', $base_url),
+                'large' => str_replace('/upload/', '/upload/w_' . ($is_portrait ? '1000' : '1200') . ',c_scale,q_80,dpr_auto/', $base_url),
                 'full' => $base_url
             );
 
             // Create srcset string with proper width descriptors
             $srcset = implode(', ', array(
-                $responsive_urls['thumbnail'] . ' 200w',
-                $responsive_urls['medium'] . ' 400w',
-                $responsive_urls['large'] . ' 800w',
+                $responsive_urls['thumbnail'] . ' 300w',
+                $responsive_urls['medium'] . ' 600w',
+                $responsive_urls['large'] . ' 1000w',
                 $responsive_urls['full'] . ' 1600w'
             ));
 
             // Determine sizes based on aspect ratio
             $sizes = $is_portrait
-                ? '(max-width: 480px) 150px, (max-width: 768px) 200px, 250px'
-                : '(max-width: 480px) 200px, (max-width: 768px) 300px, 400px';
+                ? '(max-width: 480px) 250px, (max-width: 768px) 300px, 350px'
+                : '(max-width: 480px) 300px, (max-width: 768px) 400px, 500px';
 
             $image['responsive_data'] = array(
                 'urls' => $responsive_urls,
                 'srcset' => $srcset,
                 'sizes' => $sizes,
                 'aspect_ratio' => $aspect_ratio,
-                'is_portrait' => $is_portrait
+                'is_portrait' => $is_portrait,
+                'filename' => $filename
             );
         }
         
@@ -395,7 +407,18 @@ class BR_Gallery_Shortcode {
 
         // Apply transformations to paginated results
         foreach ($images as &$image) {
+            // Extract filename from public_id
+            $filename = '';
+            if (!empty($image['public_id'])) {
+                $parts = explode('/', $image['public_id']);
+                // Look for the filename part in the path (it's the second to last part)
+                if (count($parts) >= 2) {
+                    $filename = $parts[count($parts) - 2];
+                }
+            }
+            
             $image['url'] = $this->cloudinary->generate_image_url($image['public_id']);
+            $image['filename'] = $filename;
         }
 
         // Check if there are more images
