@@ -66,8 +66,62 @@ A WordPress plugin for managing rescue donations and displaying Cloudinary image
 
 ### Gallery Shortcode
 ```
-[beautiful_rescues_gallery category="Cats" columns="3" watermark="true" sort="random" per_page="20"]
+[beautiful_rescues_gallery 
+    style="default"
+    columns="5"
+    gutter="1.5rem"
+    max_width="1200px"
+    category=""
+    sort="newest"
+    per_page="40"
+    tablet_breakpoint="768px"
+    mobile_breakpoint="480px"
+    tablet_columns="2"
+    mobile_columns="2"
+]
 ```
+
+#### Parameters
+
+1. `style` (default: "default") - The gallery style to use
+2. `columns` (default: "5") - Number of columns in the gallery grid
+3. `gutter` (default: "1.5rem") - Spacing between gallery items
+4. `max_width` (default: "1200px") - Maximum width of the gallery container
+5. `category` (default: "") - Filter images by category (e.g., "Black", "Calico", etc.)
+6. `sort` (default: "newest") - Sort order for images (options: "random", "newest", "oldest", "name")
+7. `per_page` (default: "40") - Number of images to load per page
+8. `tablet_breakpoint` (default: "768px") - Breakpoint for tablet view
+9. `mobile_breakpoint` (default: "480px") - Breakpoint for mobile view
+10. `tablet_columns` (default: "2") - Number of columns on tablet devices
+11. `mobile_columns` (default: "2") - Number of columns on mobile devices
+
+#### Examples
+
+Show a gallery of black cats with 4 columns on desktop and 2 on mobile:
+```
+[beautiful_rescues_gallery 
+    category="Black"
+    columns="4"
+    mobile_columns="2"
+]
+```
+
+Show a random selection of all cats with 3 columns:
+```
+[beautiful_rescues_gallery 
+    sort="random"
+    columns="3"
+]
+```
+
+The gallery includes features like:
+- Image selection
+- Zoom functionality
+- Load more button
+- Responsive layout
+- Sorting options
+- Category filtering
+- Watermarking (if enabled in settings)
 
 ### Donation Review Shortcode
 ```

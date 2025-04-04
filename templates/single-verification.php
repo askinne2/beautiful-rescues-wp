@@ -207,6 +207,21 @@ while (have_posts()) :
             margin: 2em auto;
             padding: 0 20px;
         }
+
+        @media (max-width: 768px) {
+            .verification-details {
+                margin: 1em auto;
+                padding: 0 15px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .verification-details {
+                margin: 0.5em auto;
+                padding: 0 10px;
+            }
+        }
+
         .verification-header {
             display: flex;
             justify-content: space-between;

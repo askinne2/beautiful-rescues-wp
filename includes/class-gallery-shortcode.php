@@ -71,7 +71,7 @@ class BR_Gallery_Shortcode {
             'style' => 'default',
             'columns' => '5',
             'gutter' => '1.5rem',
-            'max_width' => '1200px',
+            'max_width' => '100%',
             'category' => '',
             'sort' => 'newest',
             'per_page' => '40',
@@ -88,20 +88,97 @@ class BR_Gallery_Shortcode {
         // Add an inline style for the grid to ensure proper display
         $inline_style = "
             <style>
-                .beautiful-rescues-gallery .gallery-grid {
-                    grid-template-columns: repeat({$columns}, 1fr) !important;
-                    gap: {$atts['gutter']} !important;
+                .beautiful-rescues-gallery {
+                    max-width: {$atts['max_width']};
+                    margin: 0 auto;
+                }
+                
+                .gallery-grid {
+                    column-count: {$columns};
+                    column-gap: {$atts['gutter']};
+                    position: relative;
+                }
+                
+                .gallery-item {
+                    break-inside: avoid;
+                    margin-bottom: 1.5rem;
+                    width: 100%;
+                    position: relative;
+                    transition: all 0.3s ease;
+                    opacity: 0;
+                    transform: scale(0.95);
+                    animation: gallery-item-fade-in 0.5s ease forwards;
+                }
+
+                @keyframes gallery-item-fade-in {
+                    to {
+                        opacity: 1;
+                        transform: scale(1);
+                    }
+                }
+
+                .gallery-item-skeleton {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+                    background-size: 200% 100%;
+                    animation: skeleton-loading 1.5s infinite;
+                    z-index: 0;
+                    pointer-events: none;
+                    border-radius: 10px;
+                }
+
+                @keyframes skeleton-loading {
+                    0% {
+                        background-position: 200% 0;
+                    }
+                    100% {
+                        background-position: -200% 0;
+                    }
+                }
+
+                .gallery-item-image {
+                    position: relative;
+                    width: 100%;
+                    overflow: hidden;
+                    border-radius: 10px;
+                    z-index: 1;
+                    opacity: 0;
+                    transition: opacity 0.3s ease;
+                }
+
+                .gallery-item-image.loaded {
+                    opacity: 1;
+                }
+
+                .gallery-item-image img {
+                    width: 100%;
+                    height: auto;
+                    display: block;
+                    object-fit: cover;
+                    transition: transform 0.3s ease;
+                    opacity: 0;
+                    transform: scale(0.98);
+                    transition: opacity 0.3s ease, transform 0.3s ease;
+                }
+
+                .gallery-item-image img.loaded {
+                    opacity: 1;
+                    transform: scale(1);
                 }
                 
                 @media (max-width: {$atts['tablet_breakpoint']}) {
-                    .beautiful-rescues-gallery .gallery-grid {
-                        grid-template-columns: repeat({$atts['tablet_columns']}, 1fr) !important;
+                    .gallery-grid {
+                        column-count: {$atts['tablet_columns']};
                     }
                 }
                 
                 @media (max-width: {$atts['mobile_breakpoint']}) {
-                    .beautiful-rescues-gallery .gallery-grid {
-                        grid-template-columns: repeat({$atts['mobile_columns']}, 1fr) !important;
+                    .gallery-grid {
+                        column-count: {$atts['mobile_columns']};
                     }
                 }
             </style>
@@ -114,23 +191,75 @@ class BR_Gallery_Shortcode {
         
         // Apply transformations to each image
         foreach ($initial_images as &$image) {
-            $image['url'] = $this->cloudinary->generate_image_url($image['public_id']);
+            // Generate base URL with transformations
+            $base_url = $this->cloudinary->generate_image_url($image['public_id'], array(
+                'width' => 1200,  // Larger width for better quality
+                'crop' => 'scale', // Preserve aspect ratio
+                'quality' => 'auto',
+                'format' => 'auto',
+                'watermark' => true,
+                'responsive' => true,
+                'webp' => true
+            ));
+
+            // Calculate aspect ratio for responsive sizing
+            $aspect_ratio = !empty($image['height']) && !empty($image['width']) 
+                ? ($image['height'] / $image['width']) * 100 
+                : 100;
+            
+            $is_portrait = $aspect_ratio > 100;
+
+            // Generate responsive image URLs
+            $responsive_urls = array(
+                'thumbnail' => str_replace('/upload/', '/upload/w_' . ($is_portrait ? '200' : '300') . ',c_scale/', $base_url),
+                'medium' => str_replace('/upload/', '/upload/w_' . ($is_portrait ? '400' : '600') . ',c_scale/', $base_url),
+                'large' => str_replace('/upload/', '/upload/w_' . ($is_portrait ? '800' : '1200') . ',c_scale/', $base_url),
+                'full' => $base_url
+            );
+
+            // Create srcset string with proper width descriptors
+            $srcset = implode(', ', array(
+                $responsive_urls['thumbnail'] . ' 200w',
+                $responsive_urls['medium'] . ' 400w',
+                $responsive_urls['large'] . ' 800w',
+                $responsive_urls['full'] . ' 1600w'
+            ));
+
+            // Determine sizes based on aspect ratio
+            $sizes = $is_portrait
+                ? '(max-width: 480px) 150px, (max-width: 768px) 200px, 250px'
+                : '(max-width: 480px) 200px, (max-width: 768px) 300px, 400px';
+
+            $image['responsive_data'] = array(
+                'urls' => $responsive_urls,
+                'srcset' => $srcset,
+                'sizes' => $sizes,
+                'aspect_ratio' => $aspect_ratio,
+                'is_portrait' => $is_portrait
+            );
         }
         
         if (!empty($initial_images)) {
             foreach ($initial_images as $image) {
                 if (empty($image['url'])) continue;
                 
-                $imageUrl = $image['url'];
                 $initial_images_html .= '
-                <div class="gallery-item" data-public-id="' . esc_attr($image['public_id']) . '">
+                <div class="gallery-item" data-public-id="' . esc_attr($image['public_id']) . '" data-aspect-ratio="' . esc_attr($image['responsive_data']['aspect_ratio']) . '">
+                    <div class="gallery-item-skeleton" style="padding-top: ' . esc_attr($image['responsive_data']['aspect_ratio']) . '%"></div>
                     <div class="gallery-item-image">
-                        <img src="' . esc_url($imageUrl) . '" alt="' . esc_attr($image['filename'] ?? 'Gallery image') . '" data-url="' . esc_url($imageUrl) . '">
+                        <img src="' . esc_url($image['responsive_data']['urls']['medium']) . '" 
+                             srcset="' . esc_attr($image['responsive_data']['srcset']) . '"
+                             sizes="' . esc_attr($image['responsive_data']['sizes']) . '"
+                             alt="' . esc_attr($image['filename'] ?? 'Gallery image') . '" 
+                             data-url="' . esc_url($image['url']) . '"
+                             data-width="' . esc_attr($image['width'] ?? '') . '"
+                             data-height="' . esc_attr($image['height'] ?? '') . '"
+                             loading="lazy"
+                             onload="this.classList.add(\'loaded\'); this.parentElement.classList.add(\'loaded\'); this.parentElement.parentElement.querySelector(\'.gallery-item-skeleton\').style.display=\'none\'">
                         <div class="gallery-item-actions">
                             <button class="gallery-item-button select-button" aria-label="Select image">
-                                <svg class="radio-icon" viewBox="0 0 24 24" width="24" height="24">
-                                    <circle class="radio-circle" cx="12" cy="12" r="10"/>
-                                    <circle class="radio-dot" cx="12" cy="12" r="4"/>
+                                <svg class="checkmark-icon" viewBox="0 0 24 24" width="24" height="24">
+                                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
                                 </svg>
                             </button>
                             <button class="gallery-item-button zoom-button" aria-label="Zoom image">
@@ -182,14 +311,26 @@ class BR_Gallery_Shortcode {
         <!-- Gallery Modal -->
         <div class="gallery-modal">
             <div class="modal-content">
-                <button class="modal-close">&times;</button>
+                <button class="modal-close" aria-label="<?php _e('Close modal', 'beautiful-rescues'); ?>">
+                    <svg viewBox="0 0 24 24" width="24" height="24">
+                        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                    </svg>
+                </button>
                 <div class="modal-image-container">
                     <img class="modal-image" src="" alt="">
                     <div class="modal-caption"></div>
                 </div>
                 <div class="modal-navigation">
-                    <button class="modal-nav-button" data-direction="-1"><?php _e('Previous', 'beautiful-rescues'); ?></button>
-                    <button class="modal-nav-button" data-direction="1"><?php _e('Next', 'beautiful-rescues'); ?></button>
+                    <button class="modal-nav-button" data-direction="-1" aria-label="<?php _e('Previous image', 'beautiful-rescues'); ?>">
+                        <svg viewBox="0 0 24 24" width="24" height="24">
+                            <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+                        </svg>
+                    </button>
+                    <button class="modal-nav-button" data-direction="1" aria-label="<?php _e('Next image', 'beautiful-rescues'); ?>">
+                        <svg viewBox="0 0 24 24" width="24" height="24">
+                            <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
+                        </svg>
+                    </button>
                 </div>
             </div>
         </div>

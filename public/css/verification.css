@@ -424,11 +424,15 @@
 /* Responsive adjustments */
 @media (max-width: 1024px) {
     .checkout-container {
-        max-width: 90%;
+        max-width: 100%;
     }
 }
 
 @media (max-width: 768px) {
+    .checkout-page {
+        max-width: 100%;
+        padding: 0.2rem;
+    }
     .checkout-body {
         grid-template-columns: 1fr;
         gap: 1.5rem;
@@ -445,6 +449,29 @@
     .checkout-header p {
         font-size: 1rem;
     }
+
+    .beautiful-rescues-verification-form {
+        max-width: 100%;
+        margin: 0.2rem;
+        padding: 0.5rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.25rem;
+    }
+
+    .form-group input[type="text"],
+    .form-group input[type="email"],
+    .form-group input[type="tel"],
+    .form-group textarea {
+        padding: 0.625rem;
+        font-size: 16px; /* Prevent zoom on iOS */
+    }
+
+    .submit-button {
+        padding: 0.875rem;
+        font-size: 1rem;
+    }
 }
 
 @media (max-width: 480px) {
@@ -454,6 +481,30 @@
 
     .checkout-column {
         padding: 1.5rem;
+    }
+
+    .beautiful-rescues-verification-form {
+        margin: 0.75rem;
+        padding: 1.25rem;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-group label {
+        font-size: 0.9rem;
+    }
+
+    .form-group input[type="text"],
+    .form-group input[type="email"],
+    .form-group input[type="tel"],
+    .form-group textarea {
+        padding: 0.5rem;
+    }
+
+    .submit-button {
+        padding: 0.75rem;
     }
 }
 

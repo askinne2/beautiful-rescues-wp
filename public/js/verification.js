@@ -257,15 +257,16 @@
                 const submitButton = donationForm.find('button[type="submit"]');
                 const checkoutColumn = donationForm.closest('.checkout-column');
                 
-                // Check if form is already submitting using global variable
-                if (isFormSubmitting) {
+                // Check if form is already submitting using form data attribute
+                if (donationForm.data('submitting')) {
                     beautifulRescuesDebug.error('Form already submitting');
                     beautifulRescuesDebug.groupEnd();
                     return;
                 }
                 
-                // Set global submitting state
-                isFormSubmitting = true;
+                // Set form submitting state
+                donationForm.data('submitting', true);
+                submitButton.prop('disabled', true);
                 
                 // Clear previous messages
                 messages.removeClass('error success').empty();
@@ -426,8 +427,11 @@
                 return re.test(String(email).toLowerCase());
             }
 
-            // Bind form submission
-            donationForm.on('submit', handleFormSubmission);
+            // Bind form submission - only once
+            if (!donationForm.data('submission-bound')) {
+                donationForm.on('submit', handleFormSubmission);
+                donationForm.data('submission-bound', true);
+            }
         } else {
             // Handle regular verification form (not on checkout page)
             const verificationForm = $('#verification-form');

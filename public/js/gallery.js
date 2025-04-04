@@ -319,35 +319,49 @@
             const imageWidth = image.width || '';
             const imageHeight = image.height || '';
 
-            // Generate responsive image URLs
+            // Calculate aspect ratio
+            const aspectRatio = imageHeight && imageWidth ? imageHeight / imageWidth : 1;
+            const isPortrait = aspectRatio > 1;
+            const isLandscape = aspectRatio < 1;
+
+            // Generate responsive image URLs with aspect ratio consideration
             const responsiveUrls = {
-                thumbnail: imageUrl.replace('/upload/', '/upload/w_200,c_scale/'),
-                medium: imageUrl.replace('/upload/', '/upload/w_400,c_scale/'),
-                large: imageUrl.replace('/upload/', '/upload/w_800,c_scale/'),
+                thumbnail: imageUrl.replace('/upload/', `/upload/w_${isPortrait ? '200' : '300'},c_scale/`),
+                medium: imageUrl.replace('/upload/', `/upload/w_${isPortrait ? '400' : '600'},c_scale/`),
+                large: imageUrl.replace('/upload/', `/upload/w_${isPortrait ? '800' : '1200'},c_scale/`),
                 full: imageUrl
             };
 
-            // Create srcset string
-            const srcset = Object.entries(responsiveUrls)
-                .map(([size, url]) => `${url} ${size === 'thumbnail' ? '200w' : size === 'medium' ? '400w' : size === 'large' ? '800w' : '1600w'}`)
-                .join(', ');
+            // Create srcset string with proper width descriptors
+            const srcset = [
+                `${responsiveUrls.thumbnail} 200w`,
+                `${responsiveUrls.medium} 400w`,
+                `${responsiveUrls.large} 800w`,
+                `${responsiveUrls.full} 1600w`
+            ].join(', ');
+
+            // Determine sizes based on aspect ratio
+            const sizes = isPortrait 
+                ? '(max-width: 480px) 150px, (max-width: 768px) 200px, 250px'
+                : '(max-width: 480px) 200px, (max-width: 768px) 300px, 400px';
 
             return `
-                <div class="gallery-item" data-public-id="${imageId}">
+                <div class="gallery-item" data-public-id="${imageId}" data-aspect-ratio="${aspectRatio}">
+                    <div class="gallery-item-skeleton" style="padding-top: ${(aspectRatio * 100).toFixed(2)}%"></div>
                     <div class="gallery-item-image">
                         <img src="${responsiveUrls.medium}"
                              srcset="${srcset}"
-                             sizes="(max-width: 480px) 200px, (max-width: 768px) 400px, (max-width: 1200px) 800px, 1600px"
+                             sizes="${sizes}"
                              alt="${imageFilename}"
                              data-url="${imageUrl}"
                              data-width="${imageWidth}"
                              data-height="${imageHeight}"
-                             loading="lazy">
+                             loading="lazy"
+                             onload="this.classList.add('loaded'); this.parentElement.classList.add('loaded'); this.parentElement.parentElement.querySelector('.gallery-item-skeleton').style.display='none'">
                         <div class="gallery-item-actions">
                             <button class="gallery-item-button select-button" aria-label="Select image">
-                                <svg class="radio-icon" viewBox="0 0 24 24" width="24" height="24">
-                                    <circle class="radio-circle" cx="12" cy="12" r="10"/>
-                                    <circle class="radio-dot" cx="12" cy="12" r="4"/>
+                                <svg class="checkmark-icon" viewBox="0 0 24 24" width="24" height="24">
+                                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
                                 </svg>
                             </button>
                             <button class="gallery-item-button zoom-button" aria-label="Zoom image">
@@ -404,6 +418,35 @@
             $('.modal-nav-button[data-direction="-1"]').toggle(currentModalIndex > 0);
             $('.modal-nav-button[data-direction="1"]').toggle(currentModalIndex < modalImages.length - 1);
         }
+
+        // Add modal HTML structure
+        $('body').append(`
+            <div class="gallery-modal">
+                <div class="modal-content">
+                    <button class="modal-close" aria-label="Close modal">
+                        <svg viewBox="0 0 24 24" width="24" height="24">
+                            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                        </svg>
+                    </button>
+                    <div class="modal-image-container">
+                        <img class="modal-image" src="" alt="">
+                        <div class="modal-caption"></div>
+                    </div>
+                    <div class="modal-navigation">
+                        <button class="modal-nav-button" data-direction="-1" aria-label="Previous image">
+                            <svg viewBox="0 0 24 24" width="24" height="24">
+                                <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+                            </svg>
+                        </button>
+                        <button class="modal-nav-button" data-direction="1" aria-label="Next image">
+                            <svg viewBox="0 0 24 24" width="24" height="24">
+                                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `);
 
         // Function to load more images
         function loadMoreImages($gallery, category, sort, page, perPage) {

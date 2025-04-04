@@ -183,8 +183,8 @@ class BR_Cloudinary_Integration {
         // Default options
         $default_options = array(
             'width' => 800,
-            'height' => 800,
-            'crop' => 'fill',
+            'height' => null,  // Let height be determined by aspect ratio
+            'crop' => 'scale', // Use scale instead of fill to preserve aspect ratio
             'quality' => 'auto',
             'format' => 'auto',
             'watermark' => true,
@@ -203,8 +203,13 @@ class BR_Cloudinary_Integration {
             $transformations[] = "w_auto,dpr_auto";
         }
 
-        // Add crop settings
-        $transformations[] = "c_{$options['crop']},w_{$options['width']},h_{$options['height']}";
+        // Add width and crop settings
+        $transformations[] = "c_{$options['crop']},w_{$options['width']}";
+        
+        // Only add height if explicitly set
+        if ($options['height']) {
+            $transformations[] = "h_{$options['height']}";
+        }
 
         // Add quality setting
         $transformations[] = "q_{$options['quality']}";
@@ -231,7 +236,6 @@ class BR_Cloudinary_Integration {
 
         $url = "https://res.cloudinary.com/{$this->cloud_name}/image/upload/{$transformations_string}/{$public_id}";
         
-
         return $url;
     }
 
