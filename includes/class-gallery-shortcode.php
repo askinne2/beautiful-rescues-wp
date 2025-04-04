@@ -191,26 +191,21 @@ class BR_Gallery_Shortcode {
         
         // Apply transformations to each image
         foreach ($initial_images as &$image) {
-            // Generate base URL with transformations
-            $base_url = $this->cloudinary->generate_image_url($image['public_id'], array(
-                'width' => 1600,  // Increased from 1200 for better quality
-                'crop' => 'scale', // Preserve aspect ratio
-                'quality' => '80', // Set explicit quality instead of auto
-                'format' => 'auto',
-                'watermark' => true,
-                'responsive' => true,
-                'webp' => true,
-                'dpr' => 'auto' // Add DPR support for high-res displays
-            ));
-
-            // Extract filename from public_id
+            // Extract filename from asset_folder
             $filename = '';
-            if (!empty($image['public_id'])) {
-                $parts = explode('/', $image['public_id']);
-                // Look for the filename part in the path (it's the second to last part)
-                if (count($parts) >= 2) {
-                    $filename = $parts[count($parts) - 2];
-                }
+            if (!empty($image['asset_folder'])) {
+                $debug->log('Processing asset_folder for filename', array(
+                    'asset_folder' => $image['asset_folder'],
+                    'raw_data' => $image
+                ), 'info');
+                
+                // Split by forward slashes and get the last part
+                $parts = explode('/', $image['asset_folder']);
+                $filename = end($parts);
+                $debug->log('Final filename', array(
+                    'filename' => $filename,
+                    'parts' => $parts
+                ), 'info');
             }
 
             // Calculate aspect ratio for responsive sizing
@@ -222,10 +217,10 @@ class BR_Gallery_Shortcode {
 
             // Generate responsive image URLs with higher quality
             $responsive_urls = array(
-                'thumbnail' => str_replace('/upload/', '/upload/w_' . ($is_portrait ? '300' : '400') . ',c_scale,q_80,dpr_auto/', $base_url),
-                'medium' => str_replace('/upload/', '/upload/w_' . ($is_portrait ? '600' : '800') . ',c_scale,q_80,dpr_auto/', $base_url),
-                'large' => str_replace('/upload/', '/upload/w_' . ($is_portrait ? '1000' : '1200') . ',c_scale,q_80,dpr_auto/', $base_url),
-                'full' => $base_url
+                'thumbnail' => str_replace('/upload/', '/upload/w_' . ($is_portrait ? '300' : '400') . ',c_scale,q_80,dpr_auto/', $image['url']),
+                'medium' => str_replace('/upload/', '/upload/w_' . ($is_portrait ? '600' : '800') . ',c_scale,q_80,dpr_auto/', $image['url']),
+                'large' => str_replace('/upload/', '/upload/w_' . ($is_portrait ? '1000' : '1200') . ',c_scale,q_80,dpr_auto/', $image['url']),
+                'full' => $image['url']
             );
 
             // Create srcset string with proper width descriptors
@@ -262,12 +257,13 @@ class BR_Gallery_Shortcode {
                         <img src="' . esc_url($image['responsive_data']['urls']['medium']) . '" 
                              srcset="' . esc_attr($image['responsive_data']['srcset']) . '"
                              sizes="' . esc_attr($image['responsive_data']['sizes']) . '"
-                             alt="' . esc_attr($image['filename'] ?? 'Gallery image') . '" 
+                             alt="' . esc_attr($image['responsive_data']['filename'] ?? 'Gallery image') . '" 
                              data-url="' . esc_url($image['url']) . '"
                              data-width="' . esc_attr($image['width'] ?? '') . '"
                              data-height="' . esc_attr($image['height'] ?? '') . '"
                              loading="lazy"
                              onload="this.classList.add(\'loaded\'); this.parentElement.classList.add(\'loaded\'); this.parentElement.parentElement.querySelector(\'.gallery-item-skeleton\').style.display=\'none\'">
+                        <div class="gallery-item-filename">' . esc_html($image['responsive_data']['filename'] ?? '') . '</div>
                         <div class="gallery-item-actions">
                             <button class="gallery-item-button select-button" aria-label="Select image">
                                 <svg class="checkmark-icon" viewBox="0 0 24 24" width="24" height="24">
@@ -407,14 +403,21 @@ class BR_Gallery_Shortcode {
 
         // Apply transformations to paginated results
         foreach ($images as &$image) {
-            // Extract filename from public_id
+            // Extract filename from asset_folder
             $filename = '';
-            if (!empty($image['public_id'])) {
-                $parts = explode('/', $image['public_id']);
-                // Look for the filename part in the path (it's the second to last part)
-                if (count($parts) >= 2) {
-                    $filename = $parts[count($parts) - 2];
-                }
+            if (!empty($image['asset_folder'])) {
+                $debug->log('Processing asset_folder for filename', array(
+                    'asset_folder' => $image['asset_folder'],
+                    'raw_data' => $image
+                ), 'info');
+                
+                // Split by forward slashes and get the last part
+                $parts = explode('/', $image['asset_folder']);
+                $filename = end($parts);
+                $debug->log('Final filename', array(
+                    'filename' => $filename,
+                    'parts' => $parts
+                ), 'info');
             }
             
             $image['url'] = $this->cloudinary->generate_image_url($image['public_id']);

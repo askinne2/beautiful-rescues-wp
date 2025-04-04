@@ -345,12 +345,19 @@
 
             // Extract filename from URL if not provided
             let displayFilename = imageFilename;
-            if (!displayFilename && imageUrl) {
-                const urlParts = imageUrl.split('/');
-                // Look for the filename part in the path (it's the second to last part)
-                if (urlParts.length >= 2) {
-                    displayFilename = urlParts[urlParts.length - 2];
-                }
+            if (!displayFilename && image.asset_folder) {
+                beautifulRescuesDebug.log('Processing asset_folder for filename', {
+                    asset_folder: image.asset_folder,
+                    imageData: image
+                });
+                
+                // Split by forward slashes and get the last part
+                const parts = image.asset_folder.split('/');
+                displayFilename = parts[parts.length - 1];
+                beautifulRescuesDebug.log('Final filename', {
+                    filename: displayFilename,
+                    parts: parts
+                });
             }
 
             // Calculate aspect ratio

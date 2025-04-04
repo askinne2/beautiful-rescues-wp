@@ -632,7 +632,7 @@ body.modal-open {
     left: 0;
     right: 0;
     padding: 8px;
-    background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%);
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0) 100%);
     color: white;
     font-size: 12px;
     text-align: center;
@@ -642,10 +642,7 @@ body.modal-open {
     z-index: 2;
 }
 
-.gallery-item:hover .gallery-item-filename {
-    opacity: 1;
-}
-
+.gallery-item:hover .gallery-item-filename,
 .gallery-item.selected .gallery-item-filename {
     opacity: 1;
 } 
