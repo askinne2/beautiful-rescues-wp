@@ -243,8 +243,8 @@ jQuery(document).ready(function($) {
                 ${renderVerificationFile(donation.verification_file)}
             </div>
 
+            <h3>Selected Images</h3>
             <div class="selected-images">
-                <h3>Selected Images</h3>
                 <div class="images-grid">
                     ${renderSelectedImages(donation.selected_images)}
                 </div>
@@ -280,20 +280,47 @@ jQuery(document).ready(function($) {
             return '<p>No images selected</p>';
         }
 
-        return images.map(image => {
-            // Parse the title from the URL
-            const urlParts = image.url.split('/');
-            const title = urlParts[urlParts.length - 2] || 'Beautiful Rescue Kitty';
-            
-            return `
-                <div class="selected-image">
-                    <img src="${image.url}" alt="${title}">
-                    <div class="image-info">
-                        <p>${title}</p>
+        let html = '<div class="selected-images">';
+        
+        images.forEach(function(image) {
+            if (image.url) {
+                // Generate responsive image URLs
+                const baseUrl = image.url;
+                const responsiveUrls = {
+                    thumbnail: baseUrl.replace('/upload/', '/upload/w_200,c_scale/'),
+                    medium: baseUrl.replace('/upload/', '/upload/w_400,c_scale/'),
+                    large: baseUrl.replace('/upload/', '/upload/w_800,c_scale/'),
+                    full: baseUrl
+                };
+
+                // Create srcset string
+                const srcset = [
+                    `${responsiveUrls.thumbnail} 200w`,
+                    `${responsiveUrls.medium} 400w`,
+                    `${responsiveUrls.large} 800w`,
+                    `${responsiveUrls.full} 1600w`
+                ].join(', ');
+
+                html += `
+                    <div class="selected-image">
+                        <img src="${responsiveUrls.medium}"
+                             srcset="${srcset}"
+                             sizes="(max-width: 480px) 200px, (max-width: 768px) 400px, (max-width: 1200px) 800px, 1600px"
+                             alt="Selected image"
+                             loading="lazy">
+                        <div class="image-info">
+                            <p>Selected Image</p>
+                            <a href="${baseUrl}" target="_blank" class="download-link">
+                                View Full Size
+                            </a>
+                        </div>
                     </div>
-                </div>
-            `;
-        }).join('');
+                `;
+            }
+        });
+        
+        html += '</div>';
+        return html;
     }
 
     // Render pagination
