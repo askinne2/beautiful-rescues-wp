@@ -80,10 +80,11 @@
 
         // Get selected images from localStorage and ensure HTTPS URLs
         selectedImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]')
-            .filter(img => img && img.id && img.url) // Filter out invalid entries
+            .filter(img => img && img.id && img.watermarked_url && img.original_url) // Filter out invalid entries
             .map(img => ({
                 ...img,
-                url: img.url.replace('http://', 'https://')
+                watermarked_url: img.watermarked_url.replace('http://', 'https://'),
+                original_url: img.original_url.replace('http://', 'https://')
             }));
 
         // Update localStorage with filtered and HTTPS URLs
@@ -113,7 +114,7 @@
                 // Show images in grid with standardized data
                 const imagesHtml = selectedImages.map(image => `
                     <div class="selected-image-item" data-id="${image.id}">
-                        <img src="${image.url}" 
+                        <img src="${image.watermarked_url}" 
                              alt="${image.filename || ''}"
                              data-width="${image.width || ''}"
                              data-height="${image.height || ''}">
@@ -244,19 +245,21 @@
                 });
                 
                 // Update with new selections, preserving existing data
-                selectedImages = data.selectedImages.filter(img => img && img.id && img.url)
+                selectedImages = data.selectedImages.filter(img => img && img.id && img.watermarked_url && img.original_url)
                     .map(img => {
                         // If we already have this image, preserve its data
                         if (existingImagesMap[img.id]) {
                             return {
                                 ...existingImagesMap[img.id],
                                 ...img,
-                                url: img.url.replace('http://', 'https://')
+                                watermarked_url: img.watermarked_url.replace('http://', 'https://'),
+                                original_url: img.original_url.replace('http://', 'https://')
                             };
                         }
                         return {
                             ...img,
-                            url: img.url.replace('http://', 'https://')
+                            watermarked_url: img.watermarked_url.replace('http://', 'https://'),
+                            original_url: img.original_url.replace('http://', 'https://')
                         };
                     });
                 

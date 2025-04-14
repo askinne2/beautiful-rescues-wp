@@ -35,6 +35,14 @@ if (current_user_can('manage_options')) {
     ));
 }
 
+// Always enqueue the single verification styles
+wp_enqueue_style(
+    'beautiful-rescues-single-verification',
+    BR_PLUGIN_URL . 'public/css/single-verification.css',
+    array(),
+    BR_VERSION
+);
+
 // Verify access token unless user is an administrator
 $verification_id = get_the_ID();
 $stored_token = get_post_meta($verification_id, '_access_token', true);
@@ -155,184 +163,48 @@ $status_info = $status_display[$current_status] ?? $status_display['pending'];
 
         <?php if (!empty($selected_images)) : ?>
             <h3><?php _e('Your Selected Images', 'beautiful-rescues'); ?></h3>
-        <div class="selected-images">
-            <?php 
-            foreach ($selected_images as $image) : 
-                if (isset($image['url'])) :
-                    // Generate responsive image URLs
-                    $base_url = $image['url'];
-                    $responsive_urls = array(
-                        'thumbnail' => str_replace('/upload/', '/upload/w_200,c_scale/', $base_url),
-                        'medium' => str_replace('/upload/', '/upload/w_400,c_scale/', $base_url),
-                        'large' => str_replace('/upload/', '/upload/w_800,c_scale/', $base_url),
-                        'full' => $base_url
-                    );
-                    
-                    // Create srcset string
-                    $srcset = implode(', ', array(
-                        $responsive_urls['thumbnail'] . ' 200w',
-                        $responsive_urls['medium'] . ' 400w',
-                        $responsive_urls['large'] . ' 800w',
-                        $responsive_urls['full'] . ' 1600w'
-                    ));
-            ?>
+            <div class="single-cpt-selected-images">
+                <?php foreach ($selected_images as $image) : 
+                    if (isset($image['watermarked_url'])) :
+                        // Generate responsive image URLs for watermarked version
+                        $base_url = $image['watermarked_url'];
+                        $responsive_urls = array(
+                            'thumbnail' => str_replace('/upload/', '/upload/w_200,c_scale/', $base_url),
+                            'medium' => str_replace('/upload/', '/upload/w_400,c_scale/', $base_url),
+                            'large' => str_replace('/upload/', '/upload/w_800,c_scale/', $base_url),
+                            'full' => $base_url
+                        );
+                        
+                        // Create srcset string
+                        $srcset = implode(', ', array(
+                            $responsive_urls['thumbnail'] . ' 200w',
+                            $responsive_urls['medium'] . ' 400w',
+                            $responsive_urls['large'] . ' 800w',
+                            $responsive_urls['full'] . ' 1600w'
+                        ));
+                ?>
                     <div class="selected-image">
                         <img src="<?php echo esc_url($responsive_urls['medium']); ?>"
                              srcset="<?php echo esc_attr($srcset); ?>"
                              sizes="(max-width: 480px) 200px, (max-width: 768px) 400px, (max-width: 1200px) 800px, 1600px"
                              alt="<?php _e('Selected image', 'beautiful-rescues'); ?>"
                              loading="lazy">
+                        <?php if ($current_status === 'verified') : ?>
                         <div class="image-info">
-                            <p><?php _e('Selected Image', 'beautiful-rescues'); ?></p>
-                            <a href="<?php echo esc_url($base_url); ?>" target="_blank" class="download-link">
-                                <?php _e('View Full Size', 'beautiful-rescues'); ?>
+                            <a href="<?php echo esc_url($image['original_url']); ?>" target="_blank" class="download-link">
+                                <?php _e('Download Original', 'beautiful-rescues'); ?>
                             </a>
                         </div>
+                        <?php endif; ?>
                     </div>
-            <?php
-                endif;
-            endforeach; 
-            ?>
-        </div>
+                <?php
+                    endif;
+                endforeach; 
+                ?>
+            </div>
         <?php endif; ?>
     </div>
 </div>
-
-<style>
-    .verification-details {
-        max-width: 1200px;
-        margin: 2em auto;
-        padding: 0 20px;
-    }
-
-    @media (max-width: 768px) {
-        .verification-details {
-            margin: 1em auto;
-            padding: 0 15px;
-        }
-    }
-
-    @media (max-width: 480px) {
-        .verification-details {
-            margin: 0.5em auto;
-            padding: 0 10px;
-        }
-    }
-
-    .verification-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 2em;
-    }
-    .verification-status {
-        padding: 0.5em 1em;
-        border-radius: 4px;
-        font-weight: bold;
-    }
-    .status-pending {
-        background-color: #fff3cd;
-        color: #856404;
-    }
-    .status-verified {
-        background-color: #d4edda;
-        color: #155724;
-    }
-    .status-rejected {
-        background-color: #f8d7da;
-        color: #721c24;
-    }
-    .verification-meta {
-        background: #fff;
-        padding: 20px;
-        border-radius: 5px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-    .donor-details table {
-        width: 100%;
-        margin-bottom: 2em;
-    }
-    .donor-details th {
-        width: 150px;
-        text-align: left;
-        padding: 10px;
-    }
-    .verification-preview {
-        margin: 1em 0;
-        max-width: 800px;
-    }
-    .verification-preview img {
-        max-width: 100%;
-        height: auto;
-    }
-    .pdf-preview {
-        padding: 20px;
-        background: #f5f5f5;
-        border-radius: 5px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    .images-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 20px;
-        margin-top: 1em;
-    }
-    .image-item {
-        position: relative;
-    }
-    .image-item img {
-        width: 100%;
-        height: auto;
-        border-radius: 5px;
-    }
-    .view-full {
-        position: absolute;
-        bottom: 10px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: rgba(0,0,0,0.7);
-        color: #fff;
-        padding: 5px 10px;
-        border-radius: 3px;
-        text-decoration: none;
-        font-size: 0.9em;
-        opacity: 0;
-        transition: opacity 0.3s;
-    }
-    .image-item:hover .view-full {
-        opacity: 1;
-    }
-    .admin-actions {
-        background: #f8f9fa;
-        padding: 20px;
-        border-radius: 5px;
-        margin-bottom: 2em;
-        border: 1px solid #dee2e6;
-    }
-    .status-update-form {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-    }
-    .status-update-message {
-        margin-top: 10px;
-        padding: 10px;
-        border-radius: 4px;
-        display: none;
-    }
-    .status-update-message.success {
-        background-color: #d4edda;
-        color: #155724;
-        display: block;
-    }
-    .status-update-message.error {
-        background-color: #f8d7da;
-        color: #721c24;
-        display: block;
-    }
-</style>
 
 <?php if (current_user_can('manage_options')) : ?>
 <script>

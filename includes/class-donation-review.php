@@ -365,8 +365,9 @@ class BR_Donation_Review {
         $selected_images = get_post_meta($donation_id, '_selected_images', true);
         if (is_array($selected_images)) {
             foreach ($selected_images as &$image) {
-                if (isset($image['url'])) {
-                    $image['url'] = str_replace('http://', 'https://', $image['url']);
+                if (isset($image['watermarked_url']) && isset($image['original_url'])) {
+                    $image['watermarked_url'] = str_replace('http://', 'https://', $image['watermarked_url']);
+                    $image['original_url'] = str_replace('http://', 'https://', $image['original_url']);
                 }
             }
         }
@@ -463,8 +464,11 @@ class BR_Donation_Review {
         );
         $donor_email = get_post_meta($donation_id, '_email', true);
 
+        // Get selected images
+        $selected_images = get_post_meta($donation_id, '_selected_images', true);
+
         // Send email notification
-        $this->send_status_notification($donor_email, $donor_name, $status);
+        $this->send_status_notification($donor_email, $donor_name, $status, $selected_images, $donation_id);
 
         wp_send_json_success(array(
             'message' => __('Donation status updated successfully', 'beautiful-rescues')
@@ -500,7 +504,7 @@ class BR_Donation_Review {
         $message = sprintf(
             "Dear %s,\n\n" .
             "Your donation has been %s. Thank you for your support!\n\n" .
-            "You can view your verification record at: %s\n\n",
+            "You can view your verification record at:\n%s\n\n",
             $name,
             $status,
             $verification_url
@@ -510,11 +514,11 @@ class BR_Donation_Review {
             $message .= "Your selected images are now available for download:\n\n";
             
             foreach ($selected_images as $image) {
-                if (isset($image['url'])) {
+                if (isset($image['original_url'])) {
                     $message .= sprintf(
-                        "- %s: %s\n",
-                        $image['filename'] ?? basename($image['url']),
-                        $image['url']
+                        "- %s:\n%s\n\n",
+                        $image['filename'] ?? basename($image['original_url']),
+                        $image['original_url']
                     );
                 }
             }

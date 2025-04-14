@@ -182,10 +182,10 @@ class BR_Cloudinary_Integration {
     public function generate_image_url($public_id, $options = array()) {
         // Default options
         $default_options = array(
-            'width' => 800,
+            'width' => 1600,  // Increased from 800 to 1600 for higher resolution
             'height' => null,  // Let height be determined by aspect ratio
             'crop' => 'scale', // Use scale instead of fill to preserve aspect ratio
-            'quality' => 'auto',
+            'quality' => 'auto:best', // Changed to auto:best for better quality
             'format' => 'auto',
             'watermark' => true,
             'responsive' => true,
@@ -227,7 +227,7 @@ class BR_Cloudinary_Integration {
             // Extract the public ID from the watermark URL
             if (preg_match('/\/v\d+\/([^\/]+)\.(webp|png|jpg|jpeg)$/', $watermark_url, $matches)) {
                 $watermark_public_id = $matches[1];
-                $transformations[] = "l_{$watermark_public_id},w_0.7,o_20,fl_relative/fl_tiled.layer_apply";
+                $transformations[] = "l_{$watermark_public_id},w_0.7,o_50,fl_relative/fl_tiled.layer_apply";
             }
         }
 

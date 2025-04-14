@@ -235,6 +235,14 @@ class BR_Donation_Verification {
         if (!empty($_POST['selected_images'])) {
             $selected_images = json_decode(stripslashes($_POST['selected_images']), true);
             if (is_array($selected_images)) {
+                // Ensure we have both watermarked and original URLs
+                foreach ($selected_images as &$image) {
+                    if (isset($image['watermarked_url']) && isset($image['original_url'])) {
+                        // URLs are already in the correct format, just ensure HTTPS
+                        $image['watermarked_url'] = str_replace('http://', 'https://', $image['watermarked_url']);
+                        $image['original_url'] = str_replace('http://', 'https://', $image['original_url']);
+                    }
+                }
                 update_post_meta($post_id, '_selected_images', $selected_images);
             }
         }
@@ -323,6 +331,14 @@ class BR_Donation_Verification {
         if (!empty($fields['selected_images'])) {
             $selected_images = json_decode(stripslashes($fields['selected_images']), true);
             if (is_array($selected_images)) {
+                // Ensure we have both watermarked and original URLs
+                foreach ($selected_images as &$image) {
+                    if (isset($image['watermarked_url']) && isset($image['original_url'])) {
+                        // URLs are already in the correct format, just ensure HTTPS
+                        $image['watermarked_url'] = str_replace('http://', 'https://', $image['watermarked_url']);
+                        $image['original_url'] = str_replace('http://', 'https://', $image['original_url']);
+                    }
+                }
                 update_post_meta($donation_id, '_selected_images', $selected_images);
                 error_log('Stored selected images: ' . print_r($selected_images, true));
             }

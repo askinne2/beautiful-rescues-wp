@@ -160,7 +160,8 @@
                         filename: imgElement.attr('alt') || '',
                         width: imgElement.data('width') || '',
                         height: imgElement.data('height') || '',
-                        url: imgElement.attr('src') || imgElement.data('url') || ''
+                        watermarked_url: imgElement.data('watermarked-url') || '',
+                        original_url: imgElement.data('original-url') || ''
                     };
                     
                     beautifulRescuesDebug.log('Processing image data:', {
@@ -170,7 +171,7 @@
                     });
                     
                     // Validate required fields
-                    if (!imageData.id || !imageData.url) {
+                    if (!imageData.id || !imageData.watermarked_url || !imageData.original_url) {
                         beautifulRescuesDebug.warn('Invalid image data:', imageData);
                         return null;
                     }

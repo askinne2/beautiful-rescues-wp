@@ -48,6 +48,12 @@ jQuery(document).ready(function($) {
         loadDonationDetails(donationId);
     });
 
+    // Handle close button click on mobile
+    $(document).on('click', '.close-panel-button', function() {
+        $('.donation-details-panel').removeClass('active');
+        return false;
+    });
+
     // Handle pagination clicks
     pagination.on('click', '.page-button', function() {
         if (!$(this).hasClass('active')) {
@@ -119,6 +125,17 @@ jQuery(document).ready(function($) {
             },
             beforeSend: function() {
                 detailsPanel.removeClass('empty').html('<div class="loading">Loading details...</div>');
+                
+                // Scroll to the details panel
+                if (window.innerWidth <= 768) {
+                    // For mobile devices, the panel is positioned as fixed
+                    detailsPanel.addClass('active');
+                } else {
+                    // For desktop and tablets, scroll to the panel
+                    $('html, body').animate({
+                        scrollTop: detailsPanel.offset().top - 30
+                    }, 300);
+                }
             },
             success: function(response) {
                 if (response.success) {
@@ -126,7 +143,8 @@ jQuery(document).ready(function($) {
                     if (response.data.selected_images) {
                         response.data.selected_images = response.data.selected_images.map(image => ({
                             ...image,
-                            url: image.url.replace('http://', 'https://')
+                            watermarked_url: image.watermarked_url ? image.watermarked_url.replace('http://', 'https://') : '',
+                            original_url: image.original_url ? image.original_url.replace('http://', 'https://') : ''
                         }));
                     }
                     if (response.data.verification_file && response.data.verification_file.url) {
@@ -225,35 +243,41 @@ jQuery(document).ready(function($) {
 
     // Render donation details
     function renderDonationDetails(donation) {
+        const closeButton = window.innerWidth <= 768 ? 
+            '<button class="close-panel-button">×</button>' : '';
+            
         const html = `
-            <div class="donor-info">
-                <h3>Donor Information</h3>
-                <div class="donor-details">
-                    <div class="donation-details">
-                        <h3>${donation._first_name} ${donation._last_name}</h3>
-                        <h3>${donation._email}</h3>
-                        <h3>${donation._phone}</h3>
-                        <p>${donation._message || 'No message provided'}</p>
+            ${closeButton}
+            <div class="verification-details">
+                <div class="verification-header">
+                    <h2>Donation Details</h2>
+       
+                </div>
+
+                <div class="donor-info">
+                    <div class="donor-details">
+                        <p><strong>Name:</strong> ${donation._first_name} ${donation._last_name}</p>
+                        <p><strong>Email:</strong> ${donation._email}</p>
+                        <p><strong>Phone:</strong> ${donation._phone}</p>
+                        <p><strong>Message:</strong> ${donation._message || 'No message provided'}</p>
+                                     <div class="verification-status status-${donation.status}">
+                        ${donation.status.charAt(0).toUpperCase() + donation.status.slice(1)}
+                    </div>
+                    </div>
+                </div>
+
+                <div class="verification-file">
+                    <h3>Verification Document</h3>
+                    ${renderVerificationFile(donation.verification_file)}
+                </div>
+
+                <div class="selected-images-container">
+                    <h3>Selected Images</h3>
+                    <div class="selected-images">
+                        ${renderSelectedImages(donation.selected_images, donation.status)}
                     </div>
                 </div>
             </div>
-
-            <div class="verification-file">
-                <h3>Verification Document</h3>
-                ${renderVerificationFile(donation.verification_file)}
-            </div>
-
-            <h3>Selected Images</h3>
-            <div class="selected-images">
-                <div class="images-grid">
-                    ${renderSelectedImages(donation.selected_images)}
-                </div>
-            </div>
-
-            <!--div class="donation-actions">
-                <button class="verify-button">Verify</button>
-                <button class="reject-button">Reject</button>
-            </div-->
         `;
 
         detailsPanel.removeClass('empty').html(html);
@@ -275,17 +299,17 @@ jQuery(document).ready(function($) {
     }
 
     // Render selected images
-    function renderSelectedImages(images) {
+    function renderSelectedImages(images, status) {
         if (!images || !images.length) {
             return '<p>No images selected</p>';
         }
 
-        let html = '<div class="selected-images">';
+        let html = '';
         
         images.forEach(function(image) {
-            if (image.url) {
-                // Generate responsive image URLs
-                const baseUrl = image.url;
+            if (image.watermarked_url) {
+                // Generate responsive image URLs for watermarked version
+                const baseUrl = image.watermarked_url;
                 const responsiveUrls = {
                     thumbnail: baseUrl.replace('/upload/', '/upload/w_200,c_scale/'),
                     medium: baseUrl.replace('/upload/', '/upload/w_400,c_scale/'),
@@ -301,6 +325,15 @@ jQuery(document).ready(function($) {
                     `${responsiveUrls.full} 1600w`
                 ].join(', ');
 
+                // Only show download link if the donation is verified
+                const downloadOverlay = status === 'verified' && image.original_url ? `
+                    <div class="image-info">
+                        <a href="${image.original_url}" target="_blank" class="download-link">
+                            Download Original
+                        </a>
+                    </div>
+                ` : '';
+
                 html += `
                     <div class="selected-image">
                         <img src="${responsiveUrls.medium}"
@@ -308,18 +341,12 @@ jQuery(document).ready(function($) {
                              sizes="(max-width: 480px) 200px, (max-width: 768px) 400px, (max-width: 1200px) 800px, 1600px"
                              alt="Selected image"
                              loading="lazy">
-                        <div class="image-info">
-                            <p>Selected Image</p>
-                            <a href="${baseUrl}" target="_blank" class="download-link">
-                                View Full Size
-                            </a>
-                        </div>
+                        ${downloadOverlay}
                     </div>
                 `;
             }
         });
         
-        html += '</div>';
         return html;
     }
 

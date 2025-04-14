@@ -217,24 +217,24 @@ class BR_Gallery_Shortcode {
 
             // Generate responsive image URLs with higher quality
             $responsive_urls = array(
-                'thumbnail' => str_replace('/upload/', '/upload/w_' . ($is_portrait ? '300' : '400') . ',c_scale,q_80,dpr_auto/', $image['url']),
-                'medium' => str_replace('/upload/', '/upload/w_' . ($is_portrait ? '600' : '800') . ',c_scale,q_80,dpr_auto/', $image['url']),
-                'large' => str_replace('/upload/', '/upload/w_' . ($is_portrait ? '1000' : '1200') . ',c_scale,q_80,dpr_auto/', $image['url']),
+                'thumbnail' => str_replace('/upload/', '/upload/w_' . ($is_portrait ? '600' : '800') . ',c_scale,q_auto:best,dpr_auto/', $image['url']),
+                'medium' => str_replace('/upload/', '/upload/w_' . ($is_portrait ? '1200' : '1600') . ',c_scale,q_auto:best,dpr_auto/', $image['url']),
+                'large' => str_replace('/upload/', '/upload/w_' . ($is_portrait ? '2000' : '2400') . ',c_scale,q_auto:best,dpr_auto/', $image['url']),
                 'full' => $image['url']
             );
 
             // Create srcset string with proper width descriptors
             $srcset = implode(', ', array(
-                $responsive_urls['thumbnail'] . ' 300w',
-                $responsive_urls['medium'] . ' 600w',
-                $responsive_urls['large'] . ' 1000w',
-                $responsive_urls['full'] . ' 1600w'
+                $responsive_urls['thumbnail'] . ' 600w',
+                $responsive_urls['medium'] . ' 1200w',
+                $responsive_urls['large'] . ' 2000w',
+                $responsive_urls['full'] . ' 2400w'
             ));
 
             // Determine sizes based on aspect ratio
             $sizes = $is_portrait
-                ? '(max-width: 480px) 250px, (max-width: 768px) 300px, 350px'
-                : '(max-width: 480px) 300px, (max-width: 768px) 400px, 500px';
+                ? '(max-width: 480px) 500px, (max-width: 768px) 800px, 1200px'
+                : '(max-width: 480px) 600px, (max-width: 768px) 1000px, 1600px';
 
             $image['responsive_data'] = array(
                 'urls' => $responsive_urls,
@@ -242,7 +242,9 @@ class BR_Gallery_Shortcode {
                 'sizes' => $sizes,
                 'aspect_ratio' => $aspect_ratio,
                 'is_portrait' => $is_portrait,
-                'filename' => $filename
+                'filename' => $filename,
+                'watermarked_url' => $image['url'],
+                'original_url' => $image['secure_url']
             );
         }
         
@@ -258,7 +260,8 @@ class BR_Gallery_Shortcode {
                              srcset="' . esc_attr($image['responsive_data']['srcset']) . '"
                              sizes="' . esc_attr($image['responsive_data']['sizes']) . '"
                              alt="' . esc_attr($image['responsive_data']['filename'] ?? 'Gallery image') . '" 
-                             data-url="' . esc_url($image['url']) . '"
+                             data-watermarked-url="' . esc_url($image['responsive_data']['watermarked_url']) . '"
+                             data-original-url="' . esc_url($image['responsive_data']['original_url']) . '"
                              data-width="' . esc_attr($image['width'] ?? '') . '"
                              data-height="' . esc_attr($image['height'] ?? '') . '"
                              loading="lazy"
@@ -298,6 +301,9 @@ class BR_Gallery_Shortcode {
              data-per-page="<?php echo esc_attr($atts['per_page']); ?>"
              data-total-images="<?php echo esc_attr($total_images); ?>">
             <!-- Gallery content -->
+            <div class="gallery-notice">
+                <p><?php _e('We serve high-resolution images to showcase the finest details. Please be patient while images load for the best viewing experience.', 'beautiful-rescues'); ?></p>
+            </div>
             <div class="gallery-controls">
                 <div class="gallery-sort">
                     <select class="gallery-sort-select">

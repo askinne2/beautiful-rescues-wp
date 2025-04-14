@@ -2,6 +2,21 @@
     margin: 2rem 0;
 }
 
+.gallery-notice {
+    background-color: rgba(0, 0, 0, 0.05);
+    border-left: 4px solid var(--e-global-color-primary, #F0759E);
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    border-radius: 4px;
+}
+
+.gallery-notice p {
+    margin: 0;
+    color: #666;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
 /* Gallery Controls */
 .gallery-controls {
     display: flex;

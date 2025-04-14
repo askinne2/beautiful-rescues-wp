@@ -260,6 +260,7 @@
     right: 1rem;
     display: flex;
     gap: 0.5rem;
+    max-width: 200px;
 }
 
 .verify-button,
@@ -294,6 +295,7 @@
     display: flex;
     gap: 0.5rem;
     margin-left: 1rem;
+    flex-direction: column;
 }
 
 .quick-actions button {
@@ -352,6 +354,20 @@
     .donation-list-panel {
         max-width: none;
     }
+    
+    .donation-actions {
+        position: static;
+        margin-top: 1rem;
+        width: 100%;
+        max-width: 100%;
+        justify-content: flex-end;
+    }
+    
+    .verify-button,
+    .reject-button {
+        min-width: 100px;
+        max-width: 150px;
+    }
 }
 
 @media (max-width: 768px) {
@@ -396,9 +412,32 @@
         top: 0;
         right: 0;
         bottom: 0;
+        left: 0;
         width: 100%;
-        max-width: 500px;
+        height: 100%;
+        max-width: none;
         z-index: 1000;
+        overflow-y: auto;
+        padding-bottom: 60px;
+    }
+    
+    .close-panel-button {
+        position: fixed;
+        top: 10px;
+        right: 20px;
+        font-size: 2rem;
+        color: #333;
+        background: rgba(255, 255, 255, 0.8);
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 1001;
+        border: none;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
 
     .selected-images {
