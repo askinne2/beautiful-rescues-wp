@@ -136,15 +136,60 @@
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-    .beautiful-rescues-cart[data-style="default"] {
-        left: 1rem;
-        right: 1rem;
+    .beautiful-rescues-cart {
         bottom: 1rem;
-        transform: none;
+        right: 1rem;
     }
-
+    
     .beautiful-rescues-cart[data-style="default"] .cart-button {
         justify-content: center;
+        padding: 0.75rem 1.25rem;
+    }
+    
+    .beautiful-rescues-cart[data-style="icon-only"] .cart-button {
+        padding: 0.75rem;
+    }
+}
+
+/* iPhone-specific styles */
+@media (max-width: 480px) {
+    .beautiful-rescues-cart {
+        position: fixed !important; /* Override any conflicting styles */
+        bottom: 1rem !important;
+        right: 1rem !important;
+        left: auto !important;
+        top: auto !important;
+        margin: 0 !important;
+        transform: none !important;
+        z-index: 9999 !important; /* Ensure it stays on top */
+    }
+    
+    .cart-button {
+        padding: 0.6rem 1rem;
+        min-width: auto;
+    }
+    
+    .cart-text {
+        font-size: 0.9rem;
+    }
+    
+    /* Ensure the cart button is appropriately sized */
+    .beautiful-rescues-cart[data-style="icon-only"] .cart-button {
+        width: 3rem;
+        height: 3rem;
+    }
+}
+
+/* Fix for Elementor container integration on mobile */
+@media (max-width: 480px) {
+    .elementor-container .beautiful-rescues-cart,
+    .elementor-section .beautiful-rescues-cart,
+    .elementor-column .beautiful-rescues-cart {
+        position: fixed !important;
+        bottom: 1rem !important;
+        right: 1rem !important;
+        left: auto !important;
+        top: auto !important;
     }
 }
 
@@ -501,5 +546,80 @@ body.modal-open {
     to {
         transform: translateX(0);
         opacity: 1;
+    }
+}
+
+/* Clear cart button styles */
+.clear-cart-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 0.75rem;
+    background: transparent;
+    color: var(--e-global-color-secondary, #E04B7C);
+    border: 1px solid var(--e-global-color-secondary, #E04B7C);
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-left: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    gap: 0.25rem;
+}
+
+.clear-cart-button svg {
+    stroke: currentColor;
+}
+
+.clear-cart-button .clear-text {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.clear-cart-button:hover {
+    background: rgba(224, 75, 124, 0.1);
+    transform: translateY(-1px);
+}
+
+.clear-cart-button:active {
+    transform: translateY(0);
+}
+
+/* Responsive styles for the clear cart button */
+@media (max-width: 768px) {
+    .beautiful-rescues-cart {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .clear-cart-button {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.75rem;
+    }
+}
+
+/* iPhone-specific styles for clear cart button */
+@media (max-width: 480px) {
+    .beautiful-rescues-cart {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 0.5rem !important;
+        width: auto !important;
+    }
+    
+    .clear-cart-button {
+        padding: 0.4rem !important;
+        font-size: 0.7rem !important;
+        margin-left: 0.25rem !important;
+        border-radius: 50% !important;
+        width: 28px !important;
+        height: 28px !important;
+    }
+    
+    .clear-cart-button .clear-text {
+        display: none !important;
     }
 } 

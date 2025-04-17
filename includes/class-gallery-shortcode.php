@@ -217,9 +217,9 @@ class BR_Gallery_Shortcode {
 
             // Generate responsive image URLs with higher quality
             $responsive_urls = array(
-                'thumbnail' => str_replace('/upload/', '/upload/w_' . ($is_portrait ? '600' : '800') . ',c_scale,q_auto:best,dpr_auto/', $image['url']),
-                'medium' => str_replace('/upload/', '/upload/w_' . ($is_portrait ? '1200' : '1600') . ',c_scale,q_auto:best,dpr_auto/', $image['url']),
-                'large' => str_replace('/upload/', '/upload/w_' . ($is_portrait ? '2000' : '2400') . ',c_scale,q_auto:best,dpr_auto/', $image['url']),
+                'thumbnail' => str_replace('/upload/', '/upload/w_' . ($is_portrait ? '600' : '800') . ',c_scale,q_auto:best/', $image['url']),
+                'medium' => str_replace('/upload/', '/upload/w_' . ($is_portrait ? '1200' : '1600') . ',c_scale,q_auto:best/', $image['url']),
+                'large' => str_replace('/upload/', '/upload/w_' . ($is_portrait ? '2000' : '2400') . ',c_scale,q_auto:best/', $image['url']),
                 'full' => $image['url']
             );
 
@@ -243,8 +243,8 @@ class BR_Gallery_Shortcode {
                 'aspect_ratio' => $aspect_ratio,
                 'is_portrait' => $is_portrait,
                 'filename' => $filename,
-                'watermarked_url' => $image['url'],
-                'original_url' => $image['secure_url']
+                'watermarked_url' => !empty($image['url']) ? $image['url'] : $responsive_urls['medium'],
+                'original_url' => !empty($image['secure_url']) ? $image['secure_url'] : $responsive_urls['full']
             );
         }
         

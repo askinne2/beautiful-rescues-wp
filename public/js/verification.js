@@ -24,14 +24,14 @@
 
         // Get selected images from localStorage and ensure HTTPS URLs
         let selectedImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]')
-            .filter(img => img && img.id && img.watermarked_url && img.original_url) // Filter out invalid entries
+            .filter(img => img && img.id && (img.watermarked_url || img.original_url)) // Filter out invalid entries
             .map(img => ({
                 ...img,
-                watermarked_url: img.watermarked_url.replace('http://', 'https://'),
-                original_url: img.original_url.replace('http://', 'https://')
+                watermarked_url: (img.watermarked_url || '').replace('http://', 'https://'),
+                original_url: (img.original_url || '').replace('http://', 'https://')
             }));
 
-        // Update localStorage with HTTPS URLs
+        // Update localStorage with filtered and HTTPS URLs
         localStorage.setItem('beautifulRescuesSelectedImages', JSON.stringify(selectedImages));
 
         beautifulRescuesDebug.log('LocalStorage data:', {
@@ -125,17 +125,17 @@
 
             // Function to update cart count
             function updateCartCount() {
-                const count = selectedImages.length;
+                // Get current selections from localStorage
+                const storedImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]');
+                const count = storedImages.length;
+                
                 beautifulRescuesDebug.log('Updating cart count:', {
                     count: count,
-                    selectedImages: selectedImages
+                    storedImages: storedImages
                 });
 
                 $('.cart-count').text(count);
                 $('.cart-button').toggleClass('hidden', count === 0);
-
-                // Trigger custom event for cart
-                $(document).trigger('beautifulRescuesSelectionChanged');
             }
 
             // Handle remove image
@@ -144,25 +144,32 @@
                 const imageId = $(this).data('id');
                 
                 beautifulRescuesDebug.log('Removing image:', {
-                    imageId: imageId,
-                    currentSelections: selectedImages
+                    imageId: imageId
                 });
 
-                selectedImages = selectedImages.filter(img => img.id !== imageId);
+                // Get current selections from localStorage
+                const currentStoredImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]');
+                
+                // Filter out the removed image
+                const updatedImages = currentStoredImages.filter(img => img.id !== imageId);
                 
                 // Update localStorage
-                localStorage.setItem('beautifulRescuesSelectedImages', JSON.stringify(selectedImages));
+                localStorage.setItem('beautifulRescuesSelectedImages', JSON.stringify(updatedImages));
+                
+                // Update local cache
+                selectedImages = updatedImages;
                 
                 // Update UI
                 updateSelectedImagesPreview();
+                updateCartCount();
                 
                 // Trigger custom event for cart update
                 $(document).trigger('beautifulRescuesSelectionChanged', [{
-                    selectedImages: selectedImages
+                    selectedImages: updatedImages
                 }]);
                 
                 beautifulRescuesDebug.log('Image removed, new state:', {
-                    selectedImages: selectedImages,
+                    selectedImages: updatedImages,
                     localStorage: JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]')
                 });
             });
@@ -172,38 +179,25 @@
                 beautifulRescuesDebug.log('Selection changed event received:', data);
                 
                 if (data && data.selectedImages) {
-                    // Create a map of existing images by ID for quick lookup
-                    const existingImagesMap = {};
-                    selectedImages.forEach(img => {
-                        if (img && img.id) {
-                            existingImagesMap[img.id] = img;
-                        }
-                    });
-                    
-                    // Update with new selections, preserving existing data
-                    selectedImages = data.selectedImages.filter(img => img && img.id && img.watermarked_url && img.original_url)
-                        .map(img => {
-                            // If we already have this image, preserve its data
-                            if (existingImagesMap[img.id]) {
-                                return {
-                                    ...existingImagesMap[img.id],
-                                    ...img,
-                                    watermarked_url: img.watermarked_url.replace('http://', 'https://'),
-                                    original_url: img.original_url.replace('http://', 'https://')
-                                };
-                            }
-                            return {
-                                ...img,
-                                watermarked_url: img.watermarked_url.replace('http://', 'https://'),
-                                original_url: img.original_url.replace('http://', 'https://')
-                            };
-                        });
+                    // Update local cache
+                    selectedImages = data.selectedImages.filter(img => img && img.id)
+                        .map(img => ({
+                            ...img,
+                            watermarked_url: (img.watermarked_url || '').replace('http://', 'https://'),
+                            original_url: (img.original_url || '').replace('http://', 'https://')
+                        }));
                     
                     beautifulRescuesDebug.log('Updated selected images:', selectedImages);
                     
-                    // Update localStorage
-                    localStorage.setItem('beautifulRescuesSelectedImages', JSON.stringify(selectedImages));
+                    // Update localStorage (if not already done by the sender)
+                    const storedImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]');
+                    if (JSON.stringify(storedImages) !== JSON.stringify(selectedImages)) {
+                        localStorage.setItem('beautifulRescuesSelectedImages', JSON.stringify(selectedImages));
+                    }
+                    
+                    // Update UI
                     updateSelectedImagesPreview();
+                    updateCartCount();
                 }
             });
 

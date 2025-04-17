@@ -101,6 +101,8 @@
     opacity: 0;
     transform: scale(0.95);
     animation: gallery-item-fade-in 0.5s ease forwards;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
 }
 
 @keyframes gallery-item-fade-in {
@@ -142,6 +144,7 @@
     z-index: 1;
     opacity: 0;
     transition: opacity 0.3s ease;
+    pointer-events: auto;
 }
 
 .gallery-item-image img {
@@ -153,7 +156,7 @@
     opacity: 0;
     transform: scale(0.98);
     transition: opacity 0.3s ease, transform 0.3s ease;
-    pointer-events: none;
+    pointer-events: auto;
 }
 
 .gallery-item-image img.loaded {
@@ -176,12 +179,12 @@
 
 /* Add smooth transitions */
 .gallery-item:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    transform: none;
+    box-shadow: none;
 }
 
 .gallery-item:hover .gallery-item-image img {
-    transform: scale(1.05);
+    transform: none;
 }
 
 /* Ensure proper spacing */
@@ -191,47 +194,39 @@
 
 .gallery-item-actions {
     position: absolute;
-    top: 1rem;
-    right: 1rem;
+    top: 0.5rem;
+    right: 0.5rem;
     display: flex;
     gap: 0.5rem;
-    z-index: 2;
-    opacity: 0;
-    transform: translateY(-10px);
-    transition: all 0.3s ease;
-}
-
-.gallery-item:hover .gallery-item-actions,
-.gallery-item.selected .gallery-item-actions {
+    z-index: 3;
     opacity: 1;
     transform: translateY(0);
+    transition: all 0.2s ease;
+    pointer-events: auto;
 }
 
 .gallery-item-button {
-    width: 36px;
-    height: 36px;
-    border: none;
-    border-radius: 50%;
+    width: 32px;
+    height: 32px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.95);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: rgba(0, 0, 0, 0.1) 0px 2px 4px;
     backdrop-filter: blur(4px);
-    transition: all 0.2s ease;
-    padding: 0;
-}
-
-.gallery-item-button:hover {
-    background: rgba(255, 255, 255, 1);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    border-width: initial;
+    border-style: none;
+    border-color: initial;
+    border-image: initial;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.7);
+    transition: 0.2s;
+    padding: 0px;
 }
 
 .gallery-item-button svg {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     transition: all 0.2s ease;
 }
 
@@ -290,7 +285,7 @@
 /* Remove old button-specific styles */
 .gallery-item-button.select-button,
 .gallery-item-button.zoom-button {
-    background: rgba(255, 255, 255, 0.95);
+    background: rgba(255, 255, 255, 0.7);
 }
 
 .gallery-item-button.select-button:hover,
@@ -527,6 +522,21 @@ body.modal-open {
     
     .modal-navigation {
         bottom: 1rem;
+    }
+    
+    .gallery-item-actions {
+        top: 0.25rem;
+        right: 0.25rem;
+    }
+    
+    .gallery-item-button {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .gallery-item-button svg {
+        width: 16px;
+        height: 16px;
     }
 }
 

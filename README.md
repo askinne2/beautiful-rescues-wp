@@ -2,6 +2,8 @@
 
 A WordPress plugin for managing rescue donations and displaying Cloudinary image galleries.
 
+zip -r beautiful-rescues-wp.zip . -x "*.git*" "*.DS_Store" "node_modules/*" "*.log"
+
 ## Features
 
 - **Donation Management**

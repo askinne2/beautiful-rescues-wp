@@ -110,7 +110,7 @@
             });
 
             // Handle image selection
-            $('.gallery-grid').on('click', '.select-button', function(e) {
+            $('.gallery-grid').on('click touchstart', '.select-button', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 
@@ -129,7 +129,7 @@
                     }
                 });
                 
-                // Get current selections from localStorage to ensure we have the complete set
+                // Get current selections from localStorage
                 const currentStoredImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]');
                 const currentStoredIds = new Set(currentStoredImages.map(img => img.id).filter(Boolean));
                 
@@ -143,8 +143,6 @@
                     item.addClass('selected');
                 }
                 
-                $('.selected-count').text(selectedImages.size);
-                
                 // Update localStorage with standardized image data
                 const selectedImagesArray = Array.from(currentStoredIds).map(id => {
                     // First check if we already have this image in localStorage
@@ -155,25 +153,33 @@
                     
                     // If not, get it from the DOM
                     const imgElement = $('.gallery-item[data-public-id="' + id + '"] img');
+                    
+                    // Get the src as fallback for any missing URLs
+                    const imgSrc = imgElement.attr('src') || '';
+                    const imgUrl = imgElement.data('url') || imgSrc;
+                    
                     const imageData = {
                         id: id,
                         filename: imgElement.attr('alt') || '',
                         width: imgElement.data('width') || '',
                         height: imgElement.data('height') || '',
-                        watermarked_url: imgElement.data('watermarked-url') || '',
-                        original_url: imgElement.data('original-url') || ''
+                        watermarked_url: imgElement.data('watermarked-url') || imgSrc,
+                        original_url: imgElement.data('original-url') || imgUrl
                     };
                     
-                    beautifulRescuesDebug.log('Processing image data:', {
-                        id,
-                        imageData,
-                        element: imgElement[0]
-                    });
-                    
-                    // Validate required fields
-                    if (!imageData.id || !imageData.watermarked_url || !imageData.original_url) {
-                        beautifulRescuesDebug.warn('Invalid image data:', imageData);
+                    // Validate ID only - URLs will fall back to src
+                    if (!imageData.id) {
+                        beautifulRescuesDebug.warn('Invalid image data - missing ID:', imageData);
                         return null;
+                    }
+                    
+                    // Log warning but don't reject if URLs are using fallbacks
+                    if (!imgElement.data('watermarked-url') || !imgElement.data('original-url')) {
+                        beautifulRescuesDebug.warn('Using fallback URLs for image:', {
+                            id: imageData.id,
+                            filename: imageData.filename,
+                            fallbackSrc: imgSrc
+                        });
                     }
                     
                     return imageData;
@@ -198,7 +204,9 @@
                 localStorage.setItem('beautifulRescuesSelectedImages', JSON.stringify([]));
                 
                 // Trigger custom event for cart
-                $(document).trigger('beautifulRescuesSelectionChanged', [{ selectedImages: [] }]);
+                $(document).trigger('beautifulRescuesSelectionChanged', [{ 
+                    selectedImages: [] 
+                }]);
             });
 
             // Handle zoom button
@@ -207,10 +215,21 @@
                 e.stopPropagation();
                 
                 const item = $(this).closest('.gallery-item');
-                const imageUrl = item.find('img').attr('src');
+                const img = item.find('img');
+                // Use data-watermarked-url if available, fall back to src
+                const imageUrl = img.data('watermarked-url') || img.attr('src');
+                // Clean URL to avoid parameters causing issues
+                const cleanImageUrl = imageUrl.includes('?') ? 
+                    imageUrl.split('?')[0] : 
+                    imageUrl;
                 const caption = item.find('.gallery-caption').text();
                 
-                openModal(imageUrl, caption);
+                beautifulRescuesDebug.log('Opening modal with image:', {
+                    imageUrl: cleanImageUrl,
+                    fromAttribute: img.data('watermarked-url') ? 'data-watermarked-url' : 'src'
+                });
+                
+                openModal(cleanImageUrl, caption);
             });
 
             // Add modal event handlers
@@ -382,6 +401,11 @@
                 `${responsiveUrls.full} 1600w`
             ].join(', ');
 
+            // Standardize Cloudinary URL to avoid issues with parameters
+            const cleanImageUrl = imageUrl.includes('?') ? 
+                imageUrl.split('?')[0] : 
+                imageUrl;
+
             // Determine sizes based on aspect ratio
             const sizes = isPortrait 
                 ? '(max-width: 480px) 150px, (max-width: 768px) 200px, 250px'
@@ -395,7 +419,9 @@
                              srcset="${srcset}"
                              sizes="${sizes}"
                              alt="${displayFilename}"
-                             data-url="${imageUrl}"
+                             data-url="${cleanImageUrl}"
+                             data-watermarked-url="${cleanImageUrl}"
+                             data-original-url="${cleanImageUrl}"
                              data-width="${imageWidth}"
                              data-height="${imageHeight}"
                              loading="lazy"
@@ -424,16 +450,22 @@
 
         function openModal(imageUrl, caption) {
             currentModalIndex = $('.gallery-item').filter(function() {
-                return $(this).find('img').attr('src') === imageUrl;
+                const img = $(this).find('img');
+                return img.data('watermarked-url') === imageUrl || img.attr('src') === imageUrl;
             }).index();
             
             modalImages = $('.gallery-item').map(function() {
                 const $img = $(this).find('img');
                 return {
-                    url: $img.data('url'), // Use watermarked URL from data-url
+                    url: $img.data('watermarked-url') || $img.attr('src'), // Use watermarked URL from data attribute
                     caption: $(this).find('.gallery-caption').text()
                 };
             }).get();
+            
+            beautifulRescuesDebug.log('Modal images prepared:', {
+                count: modalImages.length,
+                currentIndex: currentModalIndex
+            });
             
             // Show loading state
             const $modalImage = $('.modal-image');

@@ -134,20 +134,23 @@
 
         // Function to update cart count
         function updateCartCount() {
-            const count = selectedImages.length;
+            // Get current selections from localStorage
+            const storedImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]');
+            const count = storedImages.length;
             
             beautifulRescuesDebug.log('Updating cart count:', {
                 count: count,
-                selectedImages: selectedImages
+                storedImages: storedImages
             });
 
             if (cartCount.length) {
                 cartCount.text(count);
+                // Update cart visibility based on count
+                updateCartVisibility(count > 0);
             }
-            updateCartVisibility(count > 0);
         }
 
-        // Initialize cart visibility and count immediately
+        // Initialize cart count on page load
         updateCartCount();
         updateSelectedImagesPreview();
 
@@ -227,6 +230,17 @@
                     oldValue: e.originalEvent.oldValue,
                     newValue: e.originalEvent.newValue
                 });
+                
+                // Check if cart was cleared (empty array)
+                const newData = JSON.parse(e.originalEvent.newValue || '[]');
+                if (newData.length === 0) {
+                    // If cart was cleared, make sure gallery item states are reset
+                    $('.gallery-item').removeClass('selected');
+                    if ($('.selected-count').length) {
+                        $('.selected-count').text('0');
+                    }
+                }
+                
                 updateCartCount();
             }
         });
@@ -236,38 +250,25 @@
             beautifulRescuesDebug.log('Selection changed event received:', data);
             
             if (data && data.selectedImages) {
-                // Create a map of existing images by ID for quick lookup
-                const existingImagesMap = {};
-                selectedImages.forEach(img => {
-                    if (img && img.id) {
-                        existingImagesMap[img.id] = img;
-                    }
-                });
-                
-                // Update with new selections, preserving existing data
-                selectedImages = data.selectedImages.filter(img => img && img.id && img.watermarked_url && img.original_url)
-                    .map(img => {
-                        // If we already have this image, preserve its data
-                        if (existingImagesMap[img.id]) {
-                            return {
-                                ...existingImagesMap[img.id],
-                                ...img,
-                                watermarked_url: img.watermarked_url.replace('http://', 'https://'),
-                                original_url: img.original_url.replace('http://', 'https://')
-                            };
-                        }
-                        return {
-                            ...img,
-                            watermarked_url: img.watermarked_url.replace('http://', 'https://'),
-                            original_url: img.original_url.replace('http://', 'https://')
-                        };
-                    });
+                // Update local cache
+                selectedImages = data.selectedImages.filter(img => img && img.id)
+                    .map(img => ({
+                        ...img,
+                        watermarked_url: (img.watermarked_url || '').replace('http://', 'https://'),
+                        original_url: (img.original_url || '').replace('http://', 'https://')
+                    }));
                 
                 beautifulRescuesDebug.log('Updated selected images:', selectedImages);
                 
-                // Update localStorage
-                localStorage.setItem('beautifulRescuesSelectedImages', JSON.stringify(selectedImages));
+                // Update localStorage (if not already done by the sender)
+                const storedImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]');
+                if (JSON.stringify(storedImages) !== JSON.stringify(selectedImages)) {
+                    localStorage.setItem('beautifulRescuesSelectedImages', JSON.stringify(selectedImages));
+                }
+                
+                // Update UI
                 updateSelectedImagesPreview();
+                updateCartCount();
             }
         });
 
@@ -299,5 +300,66 @@
             beautifulRescuesDebug.log('Redirecting to checkout:', beautifulRescuesCart.checkoutUrl);
             window.location.href = beautifulRescuesCart.checkoutUrl;
         });
+
+        // Add clear cart functionality that will ripple across other JS files
+        function clearCart() {
+            beautifulRescuesDebug.log('Clearing cart');
+            
+            // Clear localStorage
+            localStorage.setItem('beautifulRescuesSelectedImages', JSON.stringify([]));
+            
+            // Clear local variable
+            selectedImages = [];
+            
+            // Update UI
+            updateSelectedImagesPreview();
+            updateCartCount();
+            
+            // Reset gallery item selection states - this will update the UI in gallery.js
+            $('.gallery-item').removeClass('selected');
+            
+            // Trigger custom event for other files to sync with
+            $(document).trigger('beautifulRescuesSelectionChanged', [{ 
+                selectedImages: [] 
+            }]);
+            
+            // If a selected count element exists (from gallery.js), update it
+            if ($('.selected-count').length) {
+                $('.selected-count').text('0');
+            }
+            
+            // Show toast notification
+            showToast('Cart cleared');
+            
+            beautifulRescuesDebug.log('Cart cleared, gallery items reset');
+        }
+
+        // Add clear cart button to the DOM next to cart button
+        $('<button class="clear-cart-button" aria-label="Clear shopping cart"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg><span class="clear-text">Clear</span></button>').insertAfter('.cart-button');
+
+        // Initially hide the button
+        $('.clear-cart-button').hide();
+
+        // Show/hide clear button based on cart count
+        function updateClearButtonVisibility() {
+            const storedImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]');
+            $('.clear-cart-button').toggle(storedImages.length > 0);
+        }
+
+        // Update the updateCartCount function to also update clear button visibility
+        const originalUpdateCartCount = updateCartCount;
+        updateCartCount = function() {
+            originalUpdateCartCount.apply(this, arguments);
+            updateClearButtonVisibility();
+        };
+
+        // Bind click event to the clear cart button
+        $(document).on('click', '.clear-cart-button', function(e) {
+            e.preventDefault();
+            clearCart();
+        });
+
+        // Initialize clear button visibility
+        updateClearButtonVisibility();
     });
 })(jQuery); 
