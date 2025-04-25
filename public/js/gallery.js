@@ -23,11 +23,15 @@
         let currentPage = 1;
         let hasMoreImages = true;
         let isLoading = false;
-        let currentCategory = '';
-        let currentSort = 'random';
-        let currentPerPage = 20;
+        let currentCategory = gallery.data('category') || '';
+        let currentSort = gallery.data('sort') || 'random';
+        let currentPerPage = parseInt(gallery.data('per-page')) || 20;
 
-        beautifulRescuesDebug.log('Initializing gallery');
+        beautifulRescuesDebug.log('Initializing gallery', {
+            category: currentCategory,
+            sort: currentSort,
+            perPage: currentPerPage
+        });
 
         // Function to load images
         function loadImages(page = 1, append = false) {

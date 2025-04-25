@@ -378,10 +378,32 @@ class BR_Gallery_Shortcode {
         ), 'info');
 
         // Get all images for the category
-        $images = $this->cloudinary->get_images_from_folder($category, 1000, 'newest', 1);
+        $images = $this->cloudinary->get_images_from_folder($category, 1000, $sort, 1);
         $total_images = count($images);
 
-        // Apply sorting on the client side
+        // Extract filenames before sorting
+        foreach ($images as &$image) {
+            // Extract filename from asset_folder
+            $filename = '';
+            if (!empty($image['asset_folder'])) {
+                $debug->log('Processing asset_folder for filename', array(
+                    'asset_folder' => $image['asset_folder'],
+                    'raw_data' => $image
+                ), 'info');
+                
+                // Split by forward slashes and get the last part
+                $parts = explode('/', $image['asset_folder']);
+                $filename = end($parts);
+                $debug->log('Final filename', array(
+                    'filename' => $filename,
+                    'parts' => $parts
+                ), 'info');
+            }
+            
+            $image['filename'] = $filename;
+        }
+
+        // Apply sorting on the client side with extracted filenames
         switch ($sort) {
             case 'random':
                 shuffle($images);
@@ -407,27 +429,9 @@ class BR_Gallery_Shortcode {
         $offset = ($page - 1) * $per_page;
         $images = array_slice($images, $offset, $per_page);
 
-        // Apply transformations to paginated results
+        // Generate image URLs for paginated results
         foreach ($images as &$image) {
-            // Extract filename from asset_folder
-            $filename = '';
-            if (!empty($image['asset_folder'])) {
-                $debug->log('Processing asset_folder for filename', array(
-                    'asset_folder' => $image['asset_folder'],
-                    'raw_data' => $image
-                ), 'info');
-                
-                // Split by forward slashes and get the last part
-                $parts = explode('/', $image['asset_folder']);
-                $filename = end($parts);
-                $debug->log('Final filename', array(
-                    'filename' => $filename,
-                    'parts' => $parts
-                ), 'info');
-            }
-            
             $image['url'] = $this->cloudinary->generate_image_url($image['public_id']);
-            $image['filename'] = $filename;
         }
 
         // Check if there are more images
