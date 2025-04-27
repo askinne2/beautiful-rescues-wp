@@ -368,6 +368,16 @@ class BR_Gallery_Shortcode {
         $sort = sanitize_text_field($_POST['sort'] ?? 'random');
         $page = intval($_POST['page'] ?? 1);
         $per_page = intval($_POST['per_page'] ?? 20);
+        
+        // Validate sort parameter
+        $valid_sorts = ['random', 'newest', 'oldest', 'name'];
+        if (!in_array($sort, $valid_sorts)) {
+            $debug->log('Invalid sort parameter, defaulting to random', [
+                'requested_sort' => $sort,
+                'valid_sorts' => $valid_sorts
+            ], 'warning');
+            $sort = 'random';
+        }
 
         $debug->log('Gallery AJAX request received', array(
             'category' => $category,

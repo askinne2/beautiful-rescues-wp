@@ -264,8 +264,18 @@ class BR_Cloudinary_Integration {
         $transient_keys = [
             'random' => 'br_gallery_random_' . md5($folder),
             'newest' => 'br_gallery_newest_' . md5($folder),
-            'oldest' => 'br_gallery_oldest_' . md5($folder)
+            'oldest' => 'br_gallery_oldest_' . md5($folder),
+            'name' => 'br_gallery_name_' . md5($folder)
         ];
+
+        // Set a default key if the requested sort is not in our keys
+        if (!isset($transient_keys[$sort])) {
+            $this->debug->log('Unknown sort parameter, defaulting to random', [
+                'requested_sort' => $sort,
+                'available_sorts' => array_keys($transient_keys)
+            ], 'warning');
+            $sort = 'random';
+        }
 
         // Check if we have cached results for the requested sort
         $transient_key = $transient_keys[$sort];
@@ -352,6 +362,14 @@ class BR_Cloudinary_Integration {
                     case 'oldest':
                         usort($sorted_resources, function($a, $b) {
                             return strtotime($a['created_at']) - strtotime($b['created_at']);
+                        });
+                        break;
+                    case 'name':
+                        usort($sorted_resources, function($a, $b) {
+                            // Use filename if available, otherwise use public_id
+                            $a_name = !empty($a['filename']) ? $a['filename'] : $a['public_id'];
+                            $b_name = !empty($b['filename']) ? $b['filename'] : $b['public_id'];
+                            return strcasecmp($a_name, $b_name);
                         });
                         break;
                     case 'random':
