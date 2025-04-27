@@ -33,6 +33,14 @@
             perPage: currentPerPage
         });
 
+        // Create variables to track click timestamps and processing state
+        let lastClickTime = 0;
+        const debounceTime = 500; // milliseconds
+        let isProcessingSelection = false;
+
+        // Track if we've handled a touch event to prevent duplicate handling
+        let touchHandled = false;
+
         // Function to load images
         function loadImages(page = 1, append = false) {
             if (isLoading) return;
@@ -113,16 +121,66 @@
                 }
             });
 
-            // Handle image selection
-            $('.gallery-grid').on('click touchstart', '.select-button', function(e) {
+            // Handle touch events first (they fire before click events on mobile)
+            $(document).on('touchstart', '.select-button', function(e) {
+                // Mark that we've handled a touch to prevent the click handler from also firing
+                touchHandled = true;
+                
+                // Clear touchHandled flag after a delay (reset for next interaction)
+                setTimeout(function() {
+                    touchHandled = false;
+                }, debounceTime + 100);
+                
+                // Process the selection (same logic as click handler)
+                handleSelectionEvent(e, this);
+            });
+
+            // Handle mouse click events
+            $(document).on('click', '.select-button', function(e) {
+                // Skip if this was already handled by the touch event
+                if (touchHandled) {
+                    return false;
+                }
+                
+                // Process the selection
+                handleSelectionEvent(e, this);
+            });
+
+            // Shared function to handle selection events (from either touch or click)
+            function handleSelectionEvent(e, buttonElement) {
+                // Stop the event immediately
                 e.preventDefault();
                 e.stopPropagation();
+                e.stopImmediatePropagation();
                 
-                const item = $(this).closest('.gallery-item');
-                const imageId = item.data('public-id');
+                // Skip if we're already processing a selection
+                if (isProcessingSelection) {
+                    beautifulRescuesDebug.log('gallery.js - Selection already in progress, ignoring');
+                    return false;
+                }
+                
+                // Debounce protection - prevent double clicks
+                const now = new Date().getTime();
+                if (now - lastClickTime < debounceTime) {
+                    beautifulRescuesDebug.log('gallery.js - Debounced event, ignoring');
+                    return false;
+                }
+                lastClickTime = now;
+                
+                // Set processing flag
+                isProcessingSelection = true;
+                
+                const item = $(buttonElement).closest('.gallery-item');
+                const imageId = item.attr('data-public-id') || item.data('public-id');
                 const img = item.find('img');
                 
-                beautifulRescuesDebug.log('Image selection clicked:', {
+                if (!imageId) {
+                    beautifulRescuesDebug.warn('gallery.js - Missing image ID on selection click', item);
+                    isProcessingSelection = false;
+                    return false;
+                }
+                
+                beautifulRescuesDebug.log('gallery.js - Image selection clicked:', {
                     imageId,
                     imgData: {
                         src: img.attr('src'),
@@ -147,7 +205,7 @@
                     item.addClass('selected');
                 }
                 
-                // Update localStorage with standardized image data
+                // Create a copy of the current selected images array to avoid reference issues
                 const selectedImagesArray = Array.from(currentStoredIds).map(id => {
                     // First check if we already have this image in localStorage
                     const existingImage = currentStoredImages.find(img => img.id === id);
@@ -173,13 +231,13 @@
                     
                     // Validate ID only - URLs will fall back to src
                     if (!imageData.id) {
-                        beautifulRescuesDebug.warn('Invalid image data - missing ID:', imageData);
+                        beautifulRescuesDebug.warn('gallery.js - Invalid image data - missing ID:', imageData);
                         return null;
                     }
                     
                     // Log warning but don't reject if URLs are using fallbacks
                     if (!imgElement.data('watermarked-url') || !imgElement.data('original-url')) {
-                        beautifulRescuesDebug.warn('Using fallback URLs for image:', {
+                        beautifulRescuesDebug.warn('gallery.js - Using fallback URLs for image:', {
                             id: imageData.id,
                             filename: imageData.filename,
                             fallbackSrc: imgSrc
@@ -189,14 +247,27 @@
                     return imageData;
                 }).filter(Boolean); // Remove any null entries
                 
-                beautifulRescuesDebug.log('Storing selected images:', selectedImagesArray);
+                beautifulRescuesDebug.log('gallery.js - Storing selected images:', selectedImagesArray);
+                
+                // Store a clone of the data to prevent reference issues
                 localStorage.setItem('beautifulRescuesSelectedImages', JSON.stringify(selectedImagesArray));
+                
+                // Update the selected count display
+                $('.selected-count').text(selectedImages.size);
                 
                 // Trigger custom event for cart
                 $(document).trigger('beautifulRescuesSelectionChanged', [{
-                    selectedImages: selectedImagesArray
+                    selectedImages: selectedImagesArray.slice() // Create a copy to prevent reference issues
                 }]);
-            });
+                
+                // Reset processing flag after a short delay
+                setTimeout(function() {
+                    isProcessingSelection = false;
+                    beautifulRescuesDebug.log('gallery.js - Selection processing complete');
+                }, 100);
+                
+                return false;
+            }
 
             // Handle clear selection
             $('.clear-selection-button').on('click', function() {
@@ -293,6 +364,18 @@
                         const images = response.data.images;
                         const totalImages = response.data.total_images || 0;
                         
+                        // Get current selections from localStorage to ensure we have the complete set
+                        const currentStoredImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]');
+                        const currentStoredIds = new Set(currentStoredImages.map(img => img.id).filter(Boolean));
+                        
+                        // Update selectedImages set with current stored IDs
+                        // Don't clear the set, just add any new IDs that aren't already there
+                        currentStoredIds.forEach(id => {
+                            if (!selectedImages.has(id)) {
+                                selectedImages.add(id);
+                            }
+                        });
+                        
                         // Add new images to grid
                         images.forEach(function(image) {
                             const item = createGalleryItem(image);
@@ -326,6 +409,13 @@
                             if (selectedImages.has(image.id)) {
                                 $(item).addClass('selected');
                             }
+
+                            // Ensure the new item has all necessary data attributes for cart integration
+                            $(item).data('public-id', image.id)
+                                  .data('watermarked-url', image.watermarked_url)
+                                  .data('original-url', image.original_url)
+                                  .data('width', image.width)
+                                  .data('height', image.height);
                         });
                         
                         // Update hasMoreImages flag based on total images count
@@ -342,6 +432,16 @@
                         } else {
                             $('.load-more-button').hide();
                         }
+
+                        // Update the selected count display
+                        $('.selected-count').text(selectedImages.size);
+
+                        // Trigger a custom event to notify the cart about new items
+                        $(document).trigger('beautifulRescuesGalleryUpdated', [{
+                            newItems: images.length,
+                            totalItems: $('.gallery-grid .gallery-item').length,
+                            selectedImages: Array.from(selectedImages)
+                        }]);
                     } else {
                         hasMoreImages = false;
                         $('.load-more-button').hide();
@@ -366,6 +466,8 @@
             const imageFilename = image.filename || '';
             const imageWidth = image.width || '';
             const imageHeight = image.height || '';
+            const watermarkedUrl = image.watermarked_url || imageUrl;
+            const originalUrl = image.original_url || imageUrl;
 
             // Extract filename from URL if not provided
             let displayFilename = imageFilename;
@@ -416,7 +518,7 @@
                 : '(max-width: 480px) 200px, (max-width: 768px) 300px, 400px';
 
             return `
-                <div class="gallery-item" data-public-id="${imageId}" data-aspect-ratio="${aspectRatio}">
+                <div class="gallery-item" data-public-id="${imageId}" data-aspect-ratio="${aspectRatio}" data-width="${imageWidth}" data-height="${imageHeight}" data-watermarked-url="${watermarkedUrl}" data-original-url="${originalUrl}">
                     <div class="gallery-item-skeleton" style="padding-top: ${(aspectRatio * 100).toFixed(2)}%"></div>
                     <div class="gallery-item-image">
                         <img src="${responsiveUrls.medium}"
@@ -424,8 +526,8 @@
                              sizes="${sizes}"
                              alt="${displayFilename}"
                              data-url="${cleanImageUrl}"
-                             data-watermarked-url="${cleanImageUrl}"
-                             data-original-url="${cleanImageUrl}"
+                             data-watermarked-url="${watermarkedUrl}"
+                             data-original-url="${originalUrl}"
                              data-width="${imageWidth}"
                              data-height="${imageHeight}"
                              loading="lazy"
@@ -581,7 +683,7 @@
             if (isLoading) return;
             isLoading = true;
             
-            beautifulRescuesDebug.log('Loading more images:', {
+            beautifulRescuesDebug.log('gallery.js - Loading more images:', {
                 category,
                 sort,
                 page,
@@ -614,9 +716,17 @@
                         const currentStoredImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]');
                         const currentStoredIds = new Set(currentStoredImages.map(img => img.id).filter(Boolean));
                         
-                        // Update selectedImages set with current stored IDs
-                        selectedImages.clear();
-                        currentStoredIds.forEach(id => selectedImages.add(id));
+                        // Don't clear the set, just add any new IDs that aren't already there
+                        currentStoredIds.forEach(id => {
+                            if (!selectedImages.has(id)) {
+                                selectedImages.add(id);
+                            }
+                        });
+
+                        beautifulRescuesDebug.log('Selection state before adding images:', {
+                            storedIds: Array.from(currentStoredIds),
+                            selectedImages: Array.from(selectedImages)
+                        });
                         
                         // Add new images to grid
                         images.forEach(function(image) {
@@ -647,10 +757,20 @@
                                 $('.gallery-grid').append(item);
                             }
                             
+                            // Get the newly added item to work with
+                            const $newItem = $lastInColumn ? $lastInColumn.next() : $('.gallery-grid .gallery-item').last();
+                            
                             // Restore selection state for new images
                             if (selectedImages.has(image.id)) {
-                                $(item).addClass('selected');
+                                $newItem.addClass('selected');
                             }
+
+                            // Explicitly set data attributes for the newly added item
+                            $newItem.attr('data-public-id', image.id);
+                            $newItem.attr('data-watermarked-url', image.watermarked_url || image.url);
+                            $newItem.attr('data-original-url', image.original_url || image.url);
+                            $newItem.attr('data-width', image.width || '');
+                            $newItem.attr('data-height', image.height || '');
                         });
                         
                         // Update hasMoreImages flag based on total images count
@@ -667,6 +787,21 @@
                         } else {
                             $('.load-more-button').hide();
                         }
+
+                        // Update the selected count display
+                        $('.selected-count').text(selectedImages.size);
+
+                        beautifulRescuesDebug.log('Selection state after adding images:', {
+                            selectedImagesCount: selectedImages.size,
+                            selectedImages: Array.from(selectedImages)
+                        });
+
+                        // Trigger a custom event to notify the cart about new items
+                        // Do NOT include selectedImages in the event data to prevent overwriting
+                        $(document).trigger('beautifulRescuesGalleryUpdated', [{
+                            newItems: images.length,
+                            totalItems: $('.gallery-grid .gallery-item').length
+                        }]);
                     } else {
                         hasMoreImages = false;
                         $('.load-more-button').hide();

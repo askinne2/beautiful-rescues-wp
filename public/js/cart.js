@@ -24,6 +24,7 @@
         const donationForm = $('.donation-form');
         let selectedImages = [];
         let isAnimating = false;
+        let isProcessingSelectionChange = false;
 
         // Create toast container if not exists
         if (!$('.toast-container').length) {
@@ -90,14 +91,14 @@
         // Update localStorage with filtered and HTTPS URLs
         localStorage.setItem('beautifulRescuesSelectedImages', JSON.stringify(selectedImages));
 
-        beautifulRescuesDebug.log('LocalStorage data:', {
+        beautifulRescuesDebug.log('cart.js - LocalStorage data:', {
             selectedImages: selectedImages,
             localStorage: localStorage.getItem('beautifulRescuesSelectedImages')
         });
 
         // Function to update selected images preview
         function updateSelectedImagesPreview() {
-            beautifulRescuesDebug.log('Updating selected images preview:', {
+            beautifulRescuesDebug.log('cart.js - Updating selected images preview:', {
                 selectedImages: selectedImages
             });
 
@@ -138,7 +139,7 @@
             const storedImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]');
             const count = storedImages.length;
             
-            beautifulRescuesDebug.log('Updating cart count:', {
+            beautifulRescuesDebug.log('cart.js - Updating cart count:', {
                 count: count,
                 storedImages: storedImages
             });
@@ -247,29 +248,105 @@
 
         // Listen for selection changes from gallery
         $(document).on('beautifulRescuesSelectionChanged', function(e, data) {
-            beautifulRescuesDebug.log('Selection changed event received:', data);
+            // Prevent concurrent processing
+            if (isProcessingSelectionChange) {
+                beautifulRescuesDebug.log('cart.js - Selection change already in progress, queuing');
+                setTimeout(function() {
+                    $(document).trigger('beautifulRescuesSelectionChanged', data);
+                }, 200);
+                return;
+            }
+            
+            isProcessingSelectionChange = true;
+            beautifulRescuesDebug.log('cart.js - Selection changed event received:', data);
             
             if (data && data.selectedImages) {
-                // Update local cache
-                selectedImages = data.selectedImages.filter(img => img && img.id)
+                // Create a deep copy of the selected images to avoid reference issues
+                const newSelections = JSON.parse(JSON.stringify(data.selectedImages));
+                
+                // Update local cache with the copy
+                selectedImages = newSelections.filter(img => img && img.id)
                     .map(img => ({
                         ...img,
                         watermarked_url: (img.watermarked_url || '').replace('http://', 'https://'),
                         original_url: (img.original_url || '').replace('http://', 'https://')
                     }));
                 
-                beautifulRescuesDebug.log('Updated selected images:', selectedImages);
+                beautifulRescuesDebug.log('cart.js - Updated selected images:', selectedImages);
                 
-                // Update localStorage (if not already done by the sender)
-                const storedImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]');
-                if (JSON.stringify(storedImages) !== JSON.stringify(selectedImages)) {
-                    localStorage.setItem('beautifulRescuesSelectedImages', JSON.stringify(selectedImages));
-                }
+                // Store the updated selection in localStorage
+                localStorage.setItem('beautifulRescuesSelectedImages', JSON.stringify(selectedImages));
                 
                 // Update UI
                 updateSelectedImagesPreview();
                 updateCartCount();
+                
+                // Make sure gallery items reflect the selection state
+                setTimeout(function() {
+                    const selectedIds = new Set(selectedImages.map(img => img.id));
+                    $('.gallery-item').each(function() {
+                        const $item = $(this);
+                        const publicId = $item.attr('data-public-id') || $item.data('public-id');
+                        
+                        if (selectedIds.has(publicId)) {
+                            $item.addClass('selected');
+                        } else {
+                            $item.removeClass('selected');
+                        }
+                    });
+                    
+                    // Release the lock
+                    isProcessingSelectionChange = false;
+                    beautifulRescuesDebug.log('cart.js - Selection change processing complete');
+                }, 100);
+            } else {
+                isProcessingSelectionChange = false;
             }
+        });
+
+        // Listen for new gallery items
+        $(document).on('beautifulRescuesGalleryUpdated', function(e, data) {
+            beautifulRescuesDebug.log('Gallery updated with new items:', data);
+            
+            // Get the current selections from localStorage
+            const storedImages = JSON.parse(localStorage.getItem('beautifulRescuesSelectedImages') || '[]');
+            const storedIds = new Set(storedImages.map(img => img.id));
+            
+            // Ensure all gallery items have proper data attributes
+            setTimeout(function() {
+                $('.gallery-item').each(function() {
+                    const $item = $(this);
+                    const $img = $item.find('img');
+                    const publicId = $item.attr('data-public-id') || $item.data('public-id');
+                    
+                    // Make sure both attr and data are set
+                    if (!$item.attr('data-public-id')) {
+                        $item.attr('data-public-id', publicId || $img.attr('data-public-id') || $img.data('public-id'));
+                    }
+                    
+                    if (!$item.attr('data-watermarked-url')) {
+                        $item.attr('data-watermarked-url', $item.data('watermarked-url') || $img.attr('data-watermarked-url') || $img.data('watermarked-url'));
+                    }
+                    
+                    if (!$item.attr('data-original-url')) {
+                        $item.attr('data-original-url', $item.data('original-url') || $img.attr('data-original-url') || $img.data('original-url'));
+                    }
+                    
+                    // Update selection states based on localStorage
+                    if (storedIds.has(publicId)) {
+                        $item.addClass('selected');
+                    } else {
+                        $item.removeClass('selected');
+                    }
+                });
+                
+                beautifulRescuesDebug.log('Gallery items updated with data attributes');
+            }, 100);
+            
+            // Important: Do NOT update selectedImages or localStorage here
+            // Only update the UI to reflect the current state
+            updateSelectedImagesPreview();
+            updateCartCount();
         });
 
         // Close modal on escape key
