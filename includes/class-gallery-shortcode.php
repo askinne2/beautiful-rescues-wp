@@ -310,7 +310,6 @@ class BR_Gallery_Shortcode {
                         <option value="random" <?php selected($atts['sort'], 'random'); ?>><?php _e('Random', 'beautiful-rescues'); ?></option>
                         <option value="newest" <?php selected($atts['sort'], 'newest'); ?>><?php _e('Newest First', 'beautiful-rescues'); ?></option>
                         <option value="oldest" <?php selected($atts['sort'], 'oldest'); ?>><?php _e('Oldest First', 'beautiful-rescues'); ?></option>
-                        <option value="name" <?php selected($atts['sort'], 'name'); ?>><?php _e('Name (A-Z)', 'beautiful-rescues'); ?></option>
                     </select>
                 </div>
             </div>
@@ -377,11 +376,11 @@ class BR_Gallery_Shortcode {
             'per_page' => $per_page
         ), 'info');
 
-        // Get all images for the category
+        // Get all images for the category with the requested sort
         $images = $this->cloudinary->get_images_from_folder($category, 1000, $sort, 1);
         $total_images = count($images);
 
-        // Extract filenames before sorting
+        // Extract filenames before pagination
         foreach ($images as &$image) {
             // Extract filename from asset_folder
             $filename = '';
@@ -403,29 +402,7 @@ class BR_Gallery_Shortcode {
             $image['filename'] = $filename;
         }
 
-        // Apply sorting on the client side with extracted filenames
-        switch ($sort) {
-            case 'random':
-                shuffle($images);
-                break;
-            case 'newest':
-                usort($images, function($a, $b) {
-                    return strtotime($b['created_at']) - strtotime($a['created_at']);
-                });
-                break;
-            case 'oldest':
-                usort($images, function($a, $b) {
-                    return strtotime($a['created_at']) - strtotime($b['created_at']);
-                });
-                break;
-            case 'name':
-                usort($images, function($a, $b) {
-                    return strcasecmp($a['filename'], $b['filename']);
-                });
-                break;
-        }
-
-        // Apply pagination after sorting
+        // Apply pagination
         $offset = ($page - 1) * $per_page;
         $images = array_slice($images, $offset, $per_page);
 

@@ -254,19 +254,27 @@ class BR_Cloudinary_Integration {
     /**
      * Get images from a specific folder with rate limiting
      */
-    public function get_images_from_folder($folder = '', $limit = 20, $sort = 'random', $page = 1) {
+    public function get_images_from_folder($folder = 'Cats', $limit = 20, $sort = 'random', $page = 1) {
         if (!$this->init_cloudinary()) {
             $this->debug->log('Cloudinary not initialized', null, 'error');
             return [];
         }
 
-        // Create a transient key for the full category results
-        $transient_key = 'br_gallery_full_' . md5($folder . $sort);
+        // Create transient keys for each sort option
+        $transient_keys = [
+            'random' => 'br_gallery_random_' . md5($folder),
+            'newest' => 'br_gallery_newest_' . md5($folder),
+            'oldest' => 'br_gallery_oldest_' . md5($folder)
+        ];
+
+        // Check if we have cached results for the requested sort
+        $transient_key = $transient_keys[$sort];
         $cached_result = get_transient($transient_key);
         
         if ($cached_result !== false) {
             $this->debug->log('Using cached results', [
                 'folder' => $folder,
+                'sort' => $sort,
                 'total_count' => count($cached_result),
                 'page' => $page,
                 'limit' => $limit
@@ -280,12 +288,6 @@ class BR_Cloudinary_Integration {
             foreach ($paginated_results as &$image) {
                 $image['url'] = $this->generate_image_url($image['public_id']);
             }
-            
-            $this->debug->log('Returning paginated results from cache', [
-                'count' => count($paginated_results),
-                'offset' => $offset,
-                'limit' => $limit
-            ], 'info');
             
             return $paginated_results;
         }
@@ -309,92 +311,76 @@ class BR_Cloudinary_Integration {
                 $search_expression .= " AND folder:Cats/*";
             }
 
-            // Add sorting
-            switch ($sort) {
-                case 'newest':
-                    $search_expression .= " ORDER BY created_at DESC";
-                    break;
-                case 'oldest':
-                    $search_expression .= " ORDER BY created_at ASC";
-                    break;
-                case 'name':
-                    $search_expression .= " ORDER BY filename ASC";
-                    break;
-                case 'random':
-                default:
-                    // Random sorting handled after fetching
-                    break;
-            }
-
-            $this->debug->log('Executing Cloudinary search', [
-                'expression' => $search_expression,
-                'folder' => $folder,
-                'sort' => $sort
-            ], 'info');
-
             // Get all results for the category
             $result = $searchApi->expression($search_expression)
-                ->maxResults(1000) // Adjust this based on your needs
+                ->maxResults(1000)
                 ->execute();
 
             $resources = $result['resources'] ?? [];
 
-            // Handle random sorting if needed
-            if ($sort === 'random' || !$folder || $folder === 'Cats') {
-                // Group images by category
-                $images_by_category = array();
-                foreach ($resources as $resource) {
-                    $category = explode('/', $resource['asset_folder'])[1] ?? 'uncategorized';
-                    if (!isset($images_by_category[$category])) {
-                        $images_by_category[$category] = array();
-                    }
-                    $images_by_category[$category][] = $resource;
+            // Extract filenames from asset_folder for all resources
+            foreach ($resources as &$resource) {
+                $filename = '';
+                if (!empty($resource['asset_folder'])) {
+                    $this->debug->log('Processing asset_folder for filename', array(
+                        'asset_folder' => $resource['asset_folder'],
+                        'raw_data' => $resource
+                    ), 'info');
+                    
+                    // Split by forward slashes and get the last part
+                    $parts = explode('/', $resource['asset_folder']);
+                    $filename = end($parts);
+                    $this->debug->log('Final filename', array(
+                        'filename' => $filename,
+                        'parts' => $parts
+                    ), 'info');
                 }
-
-                $this->debug->log('Images grouped by category', array_map('count', $images_by_category), 'info');
-
-                // Get random images from each category
-                $categories = array_keys($images_by_category);
-                $images_per_category = ceil(count($resources) / count($categories));
                 
-                $selected_images = array();
-                foreach ($categories as $category) {
-                    $category_images = $images_by_category[$category];
-                    shuffle($category_images);
-                    $selected_images = array_merge(
-                        $selected_images,
-                        array_slice($category_images, 0, $images_per_category)
-                    );
-                }
-
-                // Final shuffle
-                shuffle($selected_images);
-                $resources = $selected_images;
+                $resource['filename'] = $filename;
             }
 
-            // Cache the full results for 5 minutes
-            set_transient($transient_key, $resources, 5 * MINUTE_IN_SECONDS);
+            // Store sorted versions in separate transients
+            foreach ($transient_keys as $sort_type => $key) {
+                $sorted_resources = $resources;
+                
+                switch ($sort_type) {
+                    case 'newest':
+                        usort($sorted_resources, function($a, $b) {
+                            return strtotime($b['created_at']) - strtotime($a['created_at']);
+                        });
+                        break;
+                    case 'oldest':
+                        usort($sorted_resources, function($a, $b) {
+                            return strtotime($a['created_at']) - strtotime($b['created_at']);
+                        });
+                        break;
+                    case 'random':
+                        shuffle($sorted_resources);
+                        break;
+                }
+                
+                // Cache each sorted version for 5 minutes
+                set_transient($key, $sorted_resources, 5 * MINUTE_IN_SECONDS);
+            }
 
-            $this->debug->log('Cached full results', [
-                'total_count' => count($resources),
-                'folder' => $folder,
-                'sort' => $sort
-            ], 'info');
+            // Get the requested sort from cache
+            $cached_result = get_transient($transient_key);
+            if ($cached_result === false) {
+                $this->debug->log('Failed to retrieve cached sort', [
+                    'sort' => $sort,
+                    'key' => $transient_key
+                ], 'error');
+                return [];
+            }
 
             // Return paginated results
             $offset = ($page - 1) * $limit;
-            $paginated_results = array_slice($resources, $offset, $limit);
+            $paginated_results = array_slice($cached_result, $offset, $limit);
 
             // Apply transformations to paginated results
             foreach ($paginated_results as &$image) {
                 $image['url'] = $this->generate_image_url($image['public_id']);
             }
-
-            $this->debug->log('Returning paginated results', [
-                'count' => count($paginated_results),
-                'offset' => $offset,
-                'limit' => $limit
-            ], 'info');
 
             return $paginated_results;
         } catch (Exception $e) {
