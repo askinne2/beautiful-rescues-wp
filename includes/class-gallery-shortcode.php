@@ -194,18 +194,18 @@ class BR_Gallery_Shortcode {
             // Extract filename from asset_folder
             $filename = '';
             if (!empty($image['asset_folder'])) {
-                $debug->log('Processing asset_folder for filename', array(
-                    'asset_folder' => $image['asset_folder'],
-                    'raw_data' => $image
-                ), 'info');
+                // $debug->log('Processing asset_folder for filename', array(
+                //     'asset_folder' => $image['asset_folder'],
+                //     'raw_data' => $image
+                // ), 'info');
                 
                 // Split by forward slashes and get the last part
                 $parts = explode('/', $image['asset_folder']);
                 $filename = end($parts);
-                $debug->log('Final filename', array(
-                    'filename' => $filename,
-                    'parts' => $parts
-                ), 'info');
+                // $debug->log('Final filename', array(
+                //     'filename' => $filename,
+                //     'parts' => $parts
+                // ), 'info');
             }
 
             // Calculate aspect ratio for responsive sizing
@@ -369,16 +369,6 @@ class BR_Gallery_Shortcode {
         $page = intval($_POST['page'] ?? 1);
         $per_page = intval($_POST['per_page'] ?? 20);
         
-        // Validate sort parameter
-        $valid_sorts = ['random', 'newest', 'oldest', 'name'];
-        if (!in_array($sort, $valid_sorts)) {
-            $debug->log('Invalid sort parameter, defaulting to random', [
-                'requested_sort' => $sort,
-                'valid_sorts' => $valid_sorts
-            ], 'warning');
-            $sort = 'random';
-        }
-
         $debug->log('Gallery AJAX request received', array(
             'category' => $category,
             'sort' => $sort,
@@ -390,44 +380,108 @@ class BR_Gallery_Shortcode {
         $images = $this->cloudinary->get_images_from_folder($category, 1000, $sort, 1);
         $total_images = count($images);
 
-        // Extract filenames before pagination
-        foreach ($images as &$image) {
-            // Extract filename from asset_folder
-            $filename = '';
-            if (!empty($image['asset_folder'])) {
-                $debug->log('Processing asset_folder for filename', array(
-                    'asset_folder' => $image['asset_folder'],
-                    'raw_data' => $image
-                ), 'info');
-                
-                // Split by forward slashes and get the last part
-                $parts = explode('/', $image['asset_folder']);
-                $filename = end($parts);
-                $debug->log('Final filename', array(
-                    'filename' => $filename,
-                    'parts' => $parts
-                ), 'info');
-            }
-            
-            $image['filename'] = $filename;
-        }
+        $debug->log('Images retrieved from Cloudinary', [
+            'total_count' => $total_images,
+            'first_few_ids' => array_slice(array_column($images, 'public_id'), 0, 5)
+        ], 'info');
 
-        // Apply pagination
+        // Calculate pagination
         $offset = ($page - 1) * $per_page;
-        $images = array_slice($images, $offset, $per_page);
+        $paginated_images = array_slice($images, $offset, $per_page);
 
-        // Generate image URLs for paginated results
-        foreach ($images as &$image) {
-            $image['url'] = $this->cloudinary->generate_image_url($image['public_id']);
-        }
+        $debug->log('Paginated images', [
+            'offset' => $offset,
+            'per_page' => $per_page,
+            'paginated_count' => count($paginated_images),
+            'paginated_ids' => array_column($paginated_images, 'public_id')
+        ], 'info');
 
-        // Check if there are more images
-        $has_more = ($offset + $per_page) < $total_images;
+        // Process images for response
+        $processed_images = array_map(array($this, 'process_image_for_response'), $paginated_images);
+        
+        $debug->log('Sending AJAX response', [
+            'total_images' => $total_images,
+            'current_page' => $page,
+            'per_page' => $per_page,
+            'has_more' => ($offset + $per_page) < $total_images
+        ], 'info');
 
         wp_send_json_success(array(
-            'images' => $images,
+            'images' => $processed_images,
             'total_images' => $total_images,
-            'has_more' => $has_more
+            'current_page' => $page,
+            'per_page' => $per_page,
+            'has_more' => ($offset + $per_page) < $total_images
         ));
+    }
+
+    private function process_image_for_response($image) {
+        $debug = BR_Debug::get_instance();
+        
+        $debug->log('Processing image for response', [
+            'public_id' => $image['public_id'] ?? 'missing',
+            'raw_data' => array_keys($image)
+        ], 'info');
+
+        // Extract filename from asset_folder
+        $filename = '';
+        if (!empty($image['asset_folder'])) {
+            $parts = explode('/', $image['asset_folder']);
+            $filename = end($parts);
+        }
+        
+        // Calculate aspect ratio for responsive sizing
+        $aspect_ratio = !empty($image['height']) && !empty($image['width']) 
+            ? ($image['height'] / $image['width']) * 100 
+            : 100;
+        
+        $is_portrait = $aspect_ratio > 100;
+
+        // Generate responsive image URLs with higher quality
+        $responsive_urls = array(
+            'thumbnail' => str_replace('/upload/', '/upload/w_' . ($is_portrait ? '600' : '800') . ',c_scale,q_auto:best/', $image['url']),
+            'medium' => str_replace('/upload/', '/upload/w_' . ($is_portrait ? '1200' : '1600') . ',c_scale,q_auto:best/', $image['url']),
+            'large' => str_replace('/upload/', '/upload/w_' . ($is_portrait ? '2000' : '2400') . ',c_scale,q_auto:best/', $image['url']),
+            'full' => $image['url']
+        );
+
+        // Create srcset string with proper width descriptors
+        $srcset = implode(', ', array(
+            $responsive_urls['thumbnail'] . ' 600w',
+            $responsive_urls['medium'] . ' 1200w',
+            $responsive_urls['large'] . ' 2000w',
+            $responsive_urls['full'] . ' 2400w'
+        ));
+
+        // Determine sizes based on aspect ratio
+        $sizes = $is_portrait
+            ? '(max-width: 480px) 500px, (max-width: 768px) 800px, 1200px'
+            : '(max-width: 480px) 600px, (max-width: 768px) 1000px, 1600px';
+
+        $processed = array(
+            'id' => $image['public_id'],
+            'public_id' => $image['public_id'],
+            'filename' => $filename,
+            'url' => $image['url'],
+            'responsive_data' => array(
+                'urls' => $responsive_urls,
+                'srcset' => $srcset,
+                'sizes' => $sizes,
+                'aspect_ratio' => $aspect_ratio,
+                'is_portrait' => $is_portrait,
+                'filename' => $filename,
+                'watermarked_url' => !empty($image['url']) ? $image['url'] : $responsive_urls['medium'],
+                'original_url' => !empty($image['secure_url']) ? $image['secure_url'] : $responsive_urls['full']
+            )
+        );
+
+        $debug->log('Processed image result', [
+            'id' => $processed['id'],
+            'public_id' => $processed['public_id'],
+            'has_url' => !empty($processed['url']),
+            'has_responsive_data' => !empty($processed['responsive_data'])
+        ], 'info');
+
+        return $processed;
     }
 } 

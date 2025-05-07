@@ -124,7 +124,7 @@ class BR_Beautiful_Rescues {
      * Initialize the plugin
      */
     public function init() {
-        $this->debug->log('Initializing Beautiful Rescues plugin', null, 'info');
+       // $this->debug->log('Initializing Beautiful Rescues plugin', null, 'info');
         
         // Register post types
         self::register_post_types();
@@ -205,7 +205,7 @@ class BR_Beautiful_Rescues {
         );
 
         register_post_type('verification', $args);
-        BR_Debug::get_instance()->log('Registered verification post type', null, 'info');
+        // BR_Debug::get_instance()->log('Registered verification post type', null, 'info');
     }
 
     /**
@@ -428,7 +428,7 @@ class BR_Beautiful_Rescues {
      */
     public function register_admin_menu() {
         $debug = BR_Debug::get_instance();
-        $debug->log('Registering admin menu', null, 'info');
+        // $debug->log('Registering admin menu', null, 'info');
 
         // Add main menu
         add_menu_page(
@@ -460,7 +460,7 @@ class BR_Beautiful_Rescues {
             array($this, 'render_admin_page')
         );
 
-        $debug->log('Admin menu registration completed', null, 'info');
+        // $debug->log('Admin menu registration completed', null, 'info');
     }
 
     /**
@@ -838,10 +838,10 @@ class BR_Beautiful_Rescues {
      * Initialize plugin components
      */
     public function init_components() {
-        $this->debug->log('Initializing components', array(
-            'post_type_exists' => post_type_exists('verification'),
-            'current_hook' => current_filter()
-        ));
+        // $this->debug->log('Initializing components', array(
+        //     'post_type_exists' => post_type_exists('verification'),
+        //     'current_hook' => current_filter()
+        // ));
 
         // Initialize settings
         $this->settings = new BR_Settings();
@@ -852,14 +852,14 @@ class BR_Beautiful_Rescues {
         // Initialize verification post type
         if (post_type_exists('verification')) {
             new BR_Verification_Post_Type();
-            $this->debug->log('Initialized verification post type');
+            // $this->debug->log('Initialized verification post type');
         } else {
-            $this->debug->log('Verification post type does not exist during component initialization', null, 'error');
+            // $this->debug->log('Verification post type does not exist during component initialization', null, 'error');
         }
         
         // Initialize gallery shortcode
         new BR_Gallery_Shortcode();
-        $this->debug->log('Initialized gallery shortcode');
+        // $this->debug->log('Initialized gallery shortcode');
         
         // Initialize donation verification
         BR_Donation_Verification::get_instance();

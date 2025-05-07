@@ -235,11 +235,11 @@ class BR_Cloudinary_Integration {
         $transformations_string = implode('/', $transformations);
 
         $url = "https://res.cloudinary.com/{$this->cloud_name}/image/upload/{$transformations_string}/{$public_id}";
-        $this->debug->log('Generated Cloudinary URL', [
-            'url' => $url,
-            'public_id' => $public_id,
-            'transformations' => $transformations_string
-        ], 'info');
+        // $this->debug->log('Generated Cloudinary URL', [
+        //     'url' => $url,
+        //     'public_id' => $public_id,
+        //     'transformations' => $transformations_string
+        // ], 'info');
         
         return $url;
     }
@@ -328,30 +328,46 @@ class BR_Cloudinary_Integration {
 
             $resources = $result['resources'] ?? [];
 
+            // Log raw resources before processing
+            $this->debug->log('Raw resources from Cloudinary', [
+                'count' => count($resources),
+                'first_few_ids' => array_slice(array_column($resources, 'public_id'), 0, 5)
+            ], 'info');
+
             // Extract filenames from asset_folder for all resources
             foreach ($resources as &$resource) {
                 $filename = '';
                 if (!empty($resource['asset_folder'])) {
                     $this->debug->log('Processing asset_folder for filename', array(
                         'asset_folder' => $resource['asset_folder'],
+                        'public_id' => $resource['public_id'],
                         'raw_data' => $resource
                     ), 'info');
                     
                     // Split by forward slashes and get the last part
                     $parts = explode('/', $resource['asset_folder']);
                     $filename = end($parts);
-                    $this->debug->log('Final filename', array(
-                        'filename' => $filename,
-                        'parts' => $parts
-                    ), 'info');
+
                 }
                 
                 $resource['filename'] = $filename;
             }
 
+            // Log resources after filename processing
+            $this->debug->log('Resources after filename processing', [
+                'count' => count($resources),
+                'first_few_ids' => array_slice(array_column($resources, 'public_id'), 0, 5)
+            ], 'info');
+
             // Store sorted versions in separate transients
             foreach ($transient_keys as $sort_type => $key) {
                 $sorted_resources = $resources;
+                
+                // Log before sorting
+                $this->debug->log("Before {$sort_type} sort", [
+                    'count' => count($sorted_resources),
+                    'first_few_ids' => array_slice(array_column($sorted_resources, 'public_id'), 0, 5)
+                ], 'info');
                 
                 switch ($sort_type) {
                     case 'newest':
@@ -376,7 +392,7 @@ class BR_Cloudinary_Integration {
                         shuffle($sorted_resources);
                         break;
                 }
-                
+
                 // Cache each sorted version for 5 minutes
                 set_transient($key, $sorted_resources, 5 * MINUTE_IN_SECONDS);
             }

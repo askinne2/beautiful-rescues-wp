@@ -151,6 +151,11 @@
             }
         }
 
+        // Expose updateCartCount to global scope
+        window.beautifulRescuesCart = window.beautifulRescuesCart || {};
+        window.beautifulRescuesCart.updateCartCount = updateCartCount;
+        window.beautifulRescuesCart.updateSelectedImagesPreview = updateSelectedImagesPreview;
+
         // Initialize cart count on page load
         updateCartCount();
         updateSelectedImagesPreview();
@@ -275,7 +280,7 @@
                 beautifulRescuesDebug.log('cart.js - Updated selected images:', selectedImages);
                 
                 // Store the updated selection in localStorage
-                localStorage.setItem('beautifulRescuesSelectedImages', JSON.stringify(selectedImages));
+                    localStorage.setItem('beautifulRescuesSelectedImages', JSON.stringify(selectedImages));
                 
                 // Update UI
                 updateSelectedImagesPreview();
